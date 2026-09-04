@@ -232,7 +232,7 @@ export default function HomePage() {
   const correct = selectedAnswer === question.answer;
   const copy = ui[locale];
   return (
-    <div className="min-h-screen bg-[#f6f8fb] text-[#112838] dark:bg-[#111513] dark:text-[#edf1ec]">
+    <div className="min-h-screen bg-[#f6f8fb] text-[#112838] transition-colors dark:bg-[#151917] dark:text-[#f2f5f1]">
       <LearningHeader
         title={topic.title}
         label={copy.knowledgeCheck}
@@ -242,7 +242,7 @@ export default function HomePage() {
         onTheme={() => setTheme((value) => (value === 'dark' ? 'light' : 'dark'))}
       />
       <main className="mx-auto max-w-3xl px-4 pb-20 pt-8 sm:px-6 sm:pt-12">
-        <div className="mb-6 flex items-center justify-between text-sm font-semibold text-slate-500">
+        <div className="mb-6 flex items-center justify-between text-sm font-semibold text-slate-500 dark:text-[#aeb8b0]">
           <span>
             {copy.question} {questionIndex + 1} / {questions.length}
           </span>
@@ -252,7 +252,7 @@ export default function HomePage() {
         </div>
         <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_18px_50px_rgba(18,43,60,.08)] sm:p-9 dark:border-white/10 dark:bg-[#191e1b]">
           <div className="mb-7 flex gap-4">
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#e3f5f1] text-[#13877f]">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#e3f5f1] text-[#13877f] dark:bg-[#243b34] dark:text-[#91d7be]">
               <CircleHelp size={22} />
             </span>
             <h1 className="text-xl font-bold leading-8 sm:text-2xl sm:leading-9">
@@ -270,7 +270,7 @@ export default function HomePage() {
                   onClick={() => submitAnswer(index)}
                   className={`flex w-full items-start gap-3 rounded-2xl border-2 p-4 text-left text-base leading-6 transition sm:p-5 ${right ? 'border-[#22a495] bg-[#e1f7f1] dark:bg-[#153c35]' : chosen ? 'border-[#e36b60] bg-[#fff0ed] dark:bg-[#3a211f]' : 'border-slate-200 bg-white hover:border-[#f2aa35] hover:bg-[#fffaf0] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10'}`}
                 >
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-100 text-sm font-bold">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-100 text-sm font-bold dark:bg-white/10 dark:text-white">
                     {String.fromCharCode(65 + index)}
                   </span>
                   <span className="flex-1">{choice}</span>
@@ -286,7 +286,7 @@ export default function HomePage() {
           </div>
           {selectedAnswer !== null && (
             <div
-              className={`mt-6 rounded-2xl p-5 ${correct ? 'bg-[#e1f7f1] text-[#075f58]' : 'bg-[#fff0ed] text-[#7f3b36]'}`}
+              className={`mt-6 rounded-2xl p-5 ${correct ? 'bg-[#e1f7f1] text-[#075f58] dark:bg-[#19362f] dark:text-[#b8ebd8]' : 'bg-[#fff0ed] text-[#7f3b36] dark:bg-[#3a2422] dark:text-[#ffc7c1]'}`}
             >
               <p className="font-bold">
                 {correct ? copy.right : copy.wrong}
@@ -346,15 +346,15 @@ function Dashboard({
     (completedLessons.length / courseTopics.length) * 100,
   );
   return (
-    <div className="min-h-screen bg-[#f7f7f5] text-[#37352f] transition-colors dark:bg-[#111513] dark:text-[#edf1ec]">
-      <header className="border-b border-[#e8e7e3] bg-white/90 backdrop-blur dark:border-white/10 dark:bg-[#111513]/90">
+    <div className="min-h-screen bg-[#f7f7f5] text-[#37352f] transition-colors dark:bg-[#151917] dark:text-[#f2f5f1]">
+      <header className="border-b border-[#e8e7e3] bg-white/90 backdrop-blur dark:border-white/10 dark:bg-[#151917]/90">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8">
           <div className="flex items-center gap-3">
-            <span className="grid h-11 w-11 place-items-center rounded-xl bg-[#eef2ed] text-[#526451]">
+            <span className="grid h-11 w-11 place-items-center rounded-xl bg-[#eef2ed] text-[#526451] dark:bg-[#29322d] dark:text-[#91d7be]">
               <FlaskConical />
             </span>
             <div>
-              <p className="text-xs font-bold tracking-[.16em] text-[#778174]">
+              <p className="text-xs font-bold tracking-[.16em] text-[#778174] dark:text-[#9ca9a0]">
                 UNIVERSITY OF OSLO · IN2020
               </p>
               <h1 className="text-lg font-bold">
@@ -387,45 +387,45 @@ function Dashboard({
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-5 pb-20 pt-8 sm:px-8 sm:pt-12">
-        <section className="grid gap-8 rounded-[24px] border border-[#e3e2dd] bg-white p-7 shadow-[0_8px_30px_rgba(55,53,47,.06)] sm:p-10 lg:grid-cols-[1fr_320px] dark:border-white/10 dark:bg-[#191e1b]">
+        <section className="grid gap-8 rounded-[24px] border border-[#e3e2dd] bg-white p-7 shadow-[0_8px_30px_rgba(55,53,47,.06)] sm:p-10 lg:grid-cols-[1fr_320px] dark:border-white/10 dark:bg-[#1e2421] dark:shadow-[0_18px_60px_rgba(0,0,0,.22)]">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[.18em] text-[#7d8979]">
+            <p className="text-sm font-bold uppercase tracking-[.18em] text-[#7d8979] dark:text-[#91d7be]">
               {copy.map}
             </p>
             <h2 className="mt-3 max-w-3xl text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
               {copy.headline}
             </h2>
-            <p className="mt-5 max-w-2xl text-lg leading-8 text-[#6b6963]">
+            <p className="mt-5 max-w-2xl text-lg leading-8 text-[#6b6963] dark:text-[#bdc6bf]">
               {copy.intro}
             </p>
           </div>
-          <div className="flex flex-col justify-center rounded-2xl bg-[#f4f5f1] p-6">
+          <div className="flex flex-col justify-center rounded-2xl bg-[#f4f5f1] p-6 dark:bg-[#29302c]">
             <div className="flex items-end justify-between">
               <div>
-                <p className="text-sm text-[#77746d]">{copy.progress}</p>
+                <p className="text-sm text-[#77746d] dark:text-[#aeb8b0]">{copy.progress}</p>
                 <p className="mt-1 text-4xl font-bold">{completion}%</p>
               </div>
-              <Target className="text-[#7b9078]" size={38} />
+              <Target className="text-[#7b9078] dark:text-[#91d7be]" size={38} />
             </div>
-            <div className="mt-5 h-2 overflow-hidden rounded-full bg-[#deded8]">
+            <div className="mt-5 h-2 overflow-hidden rounded-full bg-[#deded8] dark:bg-black/25">
               <div
                 className="h-full rounded-full bg-[#81947e] transition-all"
                 style={{ width: `${completion}%` }}
               />
             </div>
-            <p className="mt-3 text-sm text-[#77746d]">
+            <p className="mt-3 text-sm text-[#77746d] dark:text-[#aeb8b0]">
               {completedLessons.length} / {courseTopics.length} {copy.studied}
             </p>
           </div>
         </section>
         <div className="mt-12 flex items-end justify-between gap-4">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[.16em] text-[#7d8979]">
+            <p className="text-sm font-bold uppercase tracking-[.16em] text-[#7d8979] dark:text-[#91d7be]">
               {copy.topicsAndQuestions(courseTopics.length, totalQuestionCount)}
             </p>
             <h2 className="mt-2 text-3xl font-bold">{copy.choose}</h2>
           </div>
-          <p className="hidden max-w-md text-right text-sm leading-6 text-slate-400 md:block">
+          <p className="hidden max-w-md text-right text-sm leading-6 text-slate-400 md:block dark:text-[#9ca9a0]">
             {copy.quickQuiz}
           </p>
         </div>
@@ -436,10 +436,10 @@ function Dashboard({
             return (
               <article
                 key={topic.id}
-                className="group flex min-h-[320px] flex-col rounded-[20px] border border-[#e3e2dd] bg-white p-6 transition hover:-translate-y-0.5 hover:border-[#c9cec5] hover:shadow-[0_10px_30px_rgba(55,53,47,.08)] dark:border-white/10 dark:bg-[#191e1b] dark:hover:border-white/20"
+                className="group flex min-h-[320px] flex-col rounded-[20px] border border-[#e3e2dd] bg-white p-6 transition hover:-translate-y-0.5 hover:border-[#c9cec5] hover:shadow-[0_10px_30px_rgba(55,53,47,.08)] dark:border-white/10 dark:bg-[#1e2421] dark:hover:border-[#5f766b] dark:hover:bg-[#222925] dark:hover:shadow-[0_16px_36px_rgba(0,0,0,.24)]"
               >
                 <div className="flex items-start justify-between">
-                  <span className="grid h-11 w-11 place-items-center rounded-xl bg-[#f1f3ee] font-bold text-[#657362]">
+                  <span className="grid h-11 w-11 place-items-center rounded-xl bg-[#f1f3ee] font-bold text-[#657362] dark:bg-[#2c3530] dark:text-[#b8c9be]">
                     {String(topic.chapter).padStart(2, '0')}
                   </span>
                   {completedLessons.includes(index) && (
@@ -449,17 +449,17 @@ function Dashboard({
                     </span>
                   )}
                 </div>
-                <p className="mt-5 text-xs font-bold uppercase tracking-[.12em] text-slate-400">
+                <p className="mt-5 text-xs font-bold uppercase tracking-[.12em] text-slate-400 dark:text-[#91a097]">
                   {locale === 'en' ? `IN2020 · Topic ${topic.chapter}` : topic.english}
                 </p>
                 <h3 className="mt-2 text-2xl font-bold leading-8">
                   {topic.title}
                 </h3>
-                <p className="mt-3 line-clamp-3 text-base leading-7 text-[#6f6c65]">
+                <p className="mt-3 line-clamp-3 text-base leading-7 text-[#6f6c65] dark:text-[#b9c2bc]">
                   {topic.summary}
                 </p>
                 <div className="mt-auto pt-6">
-                  <div className="mb-3 flex items-center justify-between text-sm text-slate-400">
+                  <div className="mb-3 flex items-center justify-between text-sm text-slate-400 dark:text-[#98a59d]">
                     <span className="inline-flex items-center gap-2">
                       <Clock3 size={15} />
                       {copy.minutes}
@@ -473,14 +473,14 @@ function Dashboard({
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={() => onLesson(index)}
-                      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white px-3 font-bold text-[#102b3d] hover:bg-slate-100"
+                      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white px-3 font-bold text-[#102b3d] hover:bg-slate-100 dark:bg-[#303934] dark:text-[#edf3ee] dark:hover:bg-[#39453f]"
                     >
                       <BookOpen size={17} />
                       {copy.study}
                     </button>
                     <button
                       onClick={() => onQuiz(index)}
-                      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#e9eee6] px-3 font-bold text-[#445141] hover:bg-[#dfe7dc]"
+                      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#e9eee6] px-3 font-bold text-[#445141] hover:bg-[#dfe7dc] dark:bg-[#28473d] dark:text-[#bcebd9] dark:hover:bg-[#31584b]"
                     >
                       <ListChecks size={17} />
                       {copy.test} · {questionCount}
@@ -491,14 +491,14 @@ function Dashboard({
             );
           })}
         </div>
-        <section className="mt-12 rounded-[28px] border border-white/10 bg-white/5 p-6 sm:p-8">
+        <section className="mt-12 rounded-[28px] border border-[#e3e2dd] bg-white p-6 sm:p-8 dark:border-white/10 dark:bg-[#1e2421]">
           <h2 className="text-xl font-bold">{copy.sources}</h2>
-          <p className="mt-2 max-w-3xl leading-7 text-slate-300">
+          <p className="mt-2 max-w-3xl leading-7 text-[#6f6c65] dark:text-[#b9c2bc]">
             {copy.sourceNote}
           </p>
           <div className="mt-4 flex flex-wrap gap-3 text-sm font-semibold">
             <a
-              className="rounded-xl bg-white/8 px-4 py-2 text-[#65d7c7] hover:bg-white/12"
+              className="rounded-xl bg-[#eef2ed] px-4 py-2 text-[#526451] hover:bg-[#e4ebe2] dark:bg-white/6 dark:text-[#91d7be] dark:hover:bg-white/10"
               href="https://shop.elsevier.com/books/book-companion/9780128053904"
               target="_blank"
               rel="noreferrer"
@@ -506,7 +506,7 @@ function Dashboard({
               Elsevier Book Companion
             </a>
             <a
-              className="rounded-xl bg-white/8 px-4 py-2 text-[#65d7c7] hover:bg-white/12"
+              className="rounded-xl bg-[#eef2ed] px-4 py-2 text-[#526451] hover:bg-[#e4ebe2] dark:bg-white/6 dark:text-[#91d7be] dark:hover:bg-white/10"
               href="https://www.nngroup.com/articles/ten-usability-heuristics/"
               target="_blank"
               rel="noreferrer"
@@ -514,7 +514,7 @@ function Dashboard({
               Nielsen heuristics
             </a>
             <a
-              className="rounded-xl bg-white/8 px-4 py-2 text-[#65d7c7] hover:bg-white/12"
+              className="rounded-xl bg-[#eef2ed] px-4 py-2 text-[#526451] hover:bg-[#e4ebe2] dark:bg-white/6 dark:text-[#91d7be] dark:hover:bg-white/10"
               href="https://www.hhs.gov/ohrp/regulations-and-policy/belmont-report/read-the-belmont-report/"
               target="_blank"
               rel="noreferrer"
@@ -569,17 +569,17 @@ function AuthDialog({
       <div className="w-full max-w-md rounded-[24px] border border-[#e3e2dd] bg-white p-7 shadow-2xl dark:border-white/10 dark:bg-[#191e1b] dark:text-[#edf1ec]">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-sm font-bold text-[#7d8979]">IN2020</p>
+            <p className="text-sm font-bold text-[#7d8979] dark:text-[#91d7be]">IN2020</p>
             <h2 className="mt-1 text-2xl font-bold">{copy.profile}</h2>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg px-3 py-2 text-xl text-[#77746d]"
+            className="rounded-lg px-3 py-2 text-xl text-[#77746d] dark:text-[#b9c2bc]"
           >
             ×
           </button>
         </div>
-        <p className="mt-3 text-sm leading-6 text-[#77746d]">{copy.sync}</p>
+        <p className="mt-3 text-sm leading-6 text-[#77746d] dark:text-[#b9c2bc]">{copy.sync}</p>
         <div className="mt-6 space-y-3">
           <input
             value={email}
@@ -597,7 +597,7 @@ function AuthDialog({
           />
         </div>
         {message && (
-          <p className="mt-4 rounded-xl bg-[#f4f5f1] p-3 text-sm text-[#5f5d57]">
+          <p className="mt-4 rounded-xl bg-[#f4f5f1] p-3 text-sm text-[#5f5d57] dark:bg-white/6 dark:text-[#d4dbd6]">
             {message}
           </p>
         )}
@@ -612,7 +612,7 @@ function AuthDialog({
           <button
             disabled={busy}
             onClick={() => authenticate('signup')}
-            className="min-h-12 rounded-xl border border-[#d8d8d2] font-bold disabled:opacity-50"
+            className="min-h-12 rounded-xl border border-[#d8d8d2] font-bold disabled:opacity-50 dark:border-white/15 dark:hover:bg-white/5"
           >
             {copy.signup}
           </button>
@@ -644,7 +644,7 @@ function Lesson({
   const copy = ui[locale];
   const sections = buildLectureSections(topic, locale);
   return (
-    <div className="min-h-screen bg-[#f6f8fb] text-[#112838] dark:bg-[#111513] dark:text-[#edf1ec]">
+    <div className="min-h-screen bg-[#f6f8fb] text-[#112838] transition-colors dark:bg-[#151917] dark:text-[#f2f5f1]">
       <LearningHeader
         title={topic.title}
         label={copy.lecture(topic.chapter, courseTopics.length)}
@@ -654,7 +654,7 @@ function Lesson({
         onTheme={onTheme}
       />
       <main className="mx-auto max-w-3xl px-5 pb-24 pt-8 sm:px-8 sm:pt-14">
-        <div className="mb-7 flex items-center gap-2 text-sm font-semibold text-[#16877e]">
+        <div className="mb-7 flex items-center gap-2 text-sm font-semibold text-[#16877e] dark:text-[#91d7be]">
           <GraduationCap size={18} />
           {topic.english}
         </div>
@@ -666,7 +666,7 @@ function Lesson({
             {topic.summary}
           </p>
         </header>
-        <section className="mb-12 rounded-[28px] bg-[#10364d] p-6 text-white sm:p-9">
+        <section className="mb-12 rounded-[28px] bg-[#10364d] p-6 text-white sm:p-9 dark:border dark:border-white/10 dark:bg-[#1d302a]">
           <p className="text-sm font-bold uppercase tracking-[.16em] text-[#65d7c7]">
             {copy.goal}
           </p>
@@ -680,7 +680,7 @@ function Lesson({
               key={section.heading}
               className="border-b border-slate-200 pb-14 last:border-0 dark:border-white/10"
             >
-              <p className="mb-3 text-sm font-bold uppercase tracking-[.14em] text-[#16877e]">
+              <p className="mb-3 text-sm font-bold uppercase tracking-[.14em] text-[#16877e] dark:text-[#91d7be]">
                 {String(index + 1).padStart(2, '0')} · {copy.sections}
               </p>
               <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
@@ -697,8 +697,8 @@ function Lesson({
             </section>
           ))}
         </article>
-        <section className="mt-14 rounded-[28px] bg-[#e3f5f1] p-6 sm:p-9 dark:bg-[#15342f]">
-          <p className="text-sm font-bold uppercase tracking-[.16em] text-[#137d75]">
+        <section className="mt-14 rounded-[28px] bg-[#e3f5f1] p-6 sm:p-9 dark:border dark:border-[#315a4d] dark:bg-[#1b322b] dark:text-[#eaf5ef]">
+          <p className="text-sm font-bold uppercase tracking-[.16em] text-[#137d75] dark:text-[#91d7be]">
             {copy.keyTakeaways}
           </p>
           <ul className="mt-5 space-y-4">
@@ -713,8 +713,8 @@ function Lesson({
             ))}
           </ul>
         </section>
-        <section className="mt-8 rounded-[28px] border border-[#efc472] bg-[#fff7e4] p-6 sm:p-9 dark:border-[#8d6b31] dark:bg-[#332a19]">
-          <p className="text-sm font-bold uppercase tracking-[.16em] text-[#8e5b00]">
+        <section className="mt-8 rounded-[28px] border border-[#efc472] bg-[#fff7e4] p-6 sm:p-9 dark:border-[#66522d] dark:bg-[#2d281d] dark:text-[#f4ead3]">
+          <p className="text-sm font-bold uppercase tracking-[.16em] text-[#8e5b00] dark:text-[#e9bd72]">
             {copy.examGuide}
           </p>
           <h2 className="mt-3 text-2xl font-bold leading-9">
@@ -846,28 +846,28 @@ function LearningHeader({
   onTheme: () => void;
 }) {
   return (
-    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur dark:border-white/10 dark:bg-[#111513]/95">
+    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur dark:border-white/10 dark:bg-[#151917]/95">
       <div className="mx-auto flex max-w-5xl items-center gap-4 px-4 py-4 sm:px-6">
         <button
           onClick={onHome}
           aria-label="Back to topics"
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-slate-100 text-slate-700 hover:bg-slate-200"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-white/7 dark:text-[#dce4de] dark:hover:bg-white/12"
         >
           <ArrowLeft size={20} />
         </button>
         <div className="min-w-0 flex-1">
-          <div className="flex justify-between gap-3 text-xs font-bold uppercase tracking-[.1em] text-slate-500">
+          <div className="flex justify-between gap-3 text-xs font-bold uppercase tracking-[.1em] text-slate-500 dark:text-[#aeb8b0]">
             <span className="truncate">{label}</span>
             <span>{Math.round(progress * 100)}%</span>
           </div>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-white/10">
             <div
               className="h-full rounded-full bg-[#23a697] transition-all"
               style={{ width: `${progress * 100}%` }}
             />
           </div>
         </div>
-        <p className="hidden max-w-52 truncate text-sm font-bold text-[#123b53] sm:block">
+        <p className="hidden max-w-52 truncate text-sm font-bold text-[#123b53] sm:block dark:text-[#e2e8e3]">
           {title}
         </p>
         <ThemeButton theme={theme} onClick={onTheme} />
