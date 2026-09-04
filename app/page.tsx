@@ -1,114 +1,127 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { BookOpen, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleHelp, FlaskConical, ListChecks, RotateCcw, XCircle } from 'lucide-react';
-import { topics, totalQuestions } from '@/lib/course-content';
+import { useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, ArrowRight, BookOpen, Check, CheckCircle2, CircleHelp, Clock3, FlaskConical, GraduationCap, Home, ListChecks, RotateCcw, Sparkles, Target, Trophy, XCircle } from 'lucide-react';
+import { topics } from '@/lib/course-content';
+import { buildQuestionBank, questionsPerTopic } from '@/lib/question-bank';
 
-type View = 'study' | 'quiz';
+type Screen = 'home' | 'lesson' | 'quiz' | 'result';
 
-export default function Home() {
+export default function HomePage() {
+  const [screen, setScreen] = useState<Screen>('home');
   const [topicIndex, setTopicIndex] = useState(0);
-  const [view, setView] = useState<View>('study');
+  const [lessonStep, setLessonStep] = useState(0);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [completed, setCompleted] = useState<number[]>([]);
-  const [score, setScore] = useState(0);
+  const [answers, setAnswers] = useState<boolean[]>([]);
+  const [completedLessons, setCompletedLessons] = useState<number[]>([]);
+  const [bestScores, setBestScores] = useState<Record<number, number>>({});
   const topic = topics[topicIndex];
-  const question = topic.quiz[questionIndex];
-  const progress = Math.round((completed.length / topics.length) * 100);
-  const answered = selectedAnswer !== null;
-  const isCorrect = selectedAnswer === question.answer;
-  const quizProgress = useMemo(() => `${questionIndex + 1} / ${topic.quiz.length}`, [questionIndex, topic.quiz.length]);
+  const questions = useMemo(() => buildQuestionBank(topic), [topic]);
+  const question = questions[questionIndex];
+  const totalStudySteps = topic.sections.length + 3;
 
-  const chooseTopic = (index: number) => {
-    setTopicIndex(index);
-    setView('study');
-    setQuestionIndex(0);
-    setSelectedAnswer(null);
-    setScore(0);
-  };
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('in2020-progress');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setCompletedLessons(parsed.completedLessons ?? []);
+        setBestScores(parsed.bestScores ?? {});
+      }
+    } catch { /* Progress is optional. */ }
+  }, []);
 
-  const answerQuestion = (index: number) => {
-    if (answered) return;
+  useEffect(() => {
+    try { localStorage.setItem('in2020-progress', JSON.stringify({ completedLessons, bestScores })); } catch { /* Progress is optional. */ }
+  }, [completedLessons, bestScores]);
+
+  const openLesson = (index: number) => { setTopicIndex(index); setLessonStep(0); setScreen('lesson'); window.scrollTo(0, 0); };
+  const openQuiz = (index: number) => { setTopicIndex(index); setQuestionIndex(0); setSelectedAnswer(null); setAnswers([]); setScreen('quiz'); window.scrollTo(0, 0); };
+  const goHome = () => { setScreen('home'); window.scrollTo(0, 0); };
+
+  const submitAnswer = (index: number) => {
+    if (selectedAnswer !== null) return;
     setSelectedAnswer(index);
-    if (index === question.answer) setScore((value) => value + 1);
+    setAnswers((items) => [...items, index === question.answer]);
   };
 
   const nextQuestion = () => {
-    if (questionIndex < topic.quiz.length - 1) {
+    if (questionIndex === questions.length - 1) {
+      const finalScore = answers.filter(Boolean).length;
+      setBestScores((scores) => ({ ...scores, [topicIndex]: Math.max(scores[topicIndex] ?? 0, finalScore) }));
+      setScreen('result');
+    } else {
       setQuestionIndex((value) => value + 1);
       setSelectedAnswer(null);
+      window.scrollTo(0, 0);
     }
   };
 
+  const markLessonComplete = () => {
+    setCompletedLessons((items) => items.includes(topicIndex) ? items : [...items, topicIndex]);
+    openQuiz(topicIndex);
+  };
+
+  if (screen === 'home') return <Dashboard onLesson={openLesson} onQuiz={openQuiz} completedLessons={completedLessons} bestScores={bestScores} />;
+  if (screen === 'lesson') return <Lesson topicIndex={topicIndex} step={lessonStep} totalSteps={totalStudySteps} onStep={setLessonStep} onHome={goHome} onQuiz={markLessonComplete} />;
+  if (screen === 'result') return <Result topicIndex={topicIndex} correct={answers.filter(Boolean).length} total={questions.length} onRetry={() => openQuiz(topicIndex)} onHome={goHome} onLesson={() => openLesson(topicIndex)} />;
+
+  const correct = selectedAnswer === question.answer;
   return (
-    <main className="min-h-screen bg-[#071b2b] text-slate-100">
-      <header className="border-b border-white/10 bg-[#071b2b]/95">
-        <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-4 px-5 py-5 sm:px-8">
-          <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#ffb23e] text-[#071b2b]"><FlaskConical size={22} /></div>
-            <div><p className="text-sm font-bold tracking-[.12em] text-[#ffb23e]">IN2020</p><h1 className="text-lg font-bold">Exam Companion</h1></div>
-          </div>
-          <div className="flex gap-3 text-sm">
-            <span className="rounded-full bg-white/8 px-4 py-2"><b>{topics.length}</b> тем</span>
-            <span className="rounded-full bg-white/8 px-4 py-2"><b>{totalQuestions}</b> вопросов</span>
-          </div>
-        </div>
-      </header>
-
-      <div className="mx-auto grid max-w-[1500px] gap-5 px-4 py-5 lg:grid-cols-[310px_minmax(0,1fr)] lg:px-8">
-        <aside className="rounded-3xl border border-white/10 bg-[#0c2638] p-3 lg:sticky lg:top-5 lg:h-[calc(100vh-40px)] lg:overflow-y-auto">
-          <div className="mb-3 px-3 pt-2">
-            <div className="mb-2 flex justify-between text-sm"><span className="text-slate-400">Пройдено</span><b>{progress}%</b></div>
-            <div className="h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-[#65d7c7] transition-all" style={{ width: `${progress}%` }} /></div>
-          </div>
-          <nav className="space-y-1" aria-label="Темы курса">
-            {topics.map((item, index) => (
-              <button key={item.id} onClick={() => chooseTopic(index)} className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition ${topicIndex === index ? 'bg-[#19506b] text-white' : 'text-slate-300 hover:bg-white/5'}`}>
-                <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl text-xs font-bold ${completed.includes(index) ? 'bg-[#65d7c7] text-[#071b2b]' : 'bg-white/10'}`}>{completed.includes(index) ? <Check size={16} /> : String(item.chapter).padStart(2, '0')}</span>
-                <span className="min-w-0"><span className="block text-sm font-semibold">{item.title}</span><span className="block truncate text-xs text-slate-400">{item.english}</span></span>
-              </button>
-            ))}
-          </nav>
-        </aside>
-
-        <section className="min-w-0">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-sm text-slate-400"><span>Глава {topic.chapter}</span><ChevronRight size={15} /><span>{topic.english}</span></div>
-            <div className="flex rounded-xl bg-white/8 p-1" role="tablist" aria-label="Режим изучения">
-              <button onClick={() => setView('study')} className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold ${view === 'study' ? 'bg-[#f7f6f0] text-[#102737]' : 'text-slate-300'}`}><BookOpen size={16} />Материал</button>
-              <button onClick={() => { setView('quiz'); setQuestionIndex(0); setSelectedAnswer(null); setScore(0); }} className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold ${view === 'quiz' ? 'bg-[#f7f6f0] text-[#102737]' : 'text-slate-300'}`}><ListChecks size={16} />Тест</button>
-            </div>
-          </div>
-
-          {view === 'study' ? (
-            <article className="rounded-3xl bg-[#f7f6f0] p-6 text-[#102737] shadow-2xl sm:p-9">
-              <div className="border-b border-slate-200 pb-7"><p className="text-sm font-bold uppercase tracking-[.15em] text-[#148d85]">Учебный материал</p><h2 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">{topic.title}</h2><p className="mt-4 max-w-4xl text-lg leading-8 text-slate-600">{topic.summary}</p></div>
-              <div className="mt-8 grid gap-5 xl:grid-cols-3">
-                {topic.sections.map((section, index) => <section key={section.heading} className="rounded-2xl border border-[#d9e2e1] bg-white p-5"><span className="mb-4 grid h-8 w-8 place-items-center rounded-xl bg-[#e1f4f0] text-sm font-bold text-[#147c75]">{index + 1}</span><h3 className="text-xl font-bold">{section.heading}</h3><p className="mt-3 text-base leading-7 text-slate-600">{section.body}</p></section>)}
-              </div>
-              <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_1fr]">
-                <section className="rounded-2xl bg-[#102f43] p-6 text-white"><h3 className="text-sm font-bold uppercase tracking-[.14em] text-[#65d7c7]">Запомнить</h3><ul className="mt-4 space-y-3">{topic.keyPoints.map((point) => <li key={point} className="flex gap-3 text-base leading-6"><CheckCircle2 className="mt-0.5 shrink-0 text-[#65d7c7]" size={19} />{point}</li>)}</ul></section>
-                <section className="rounded-2xl border border-[#efc472] bg-[#fff6df] p-6"><h3 className="text-sm font-bold uppercase tracking-[.14em] text-[#936000]">Экзаменационная тренировка</h3><p className="mt-4 text-lg font-semibold leading-7">{topic.examPrompt}</p><button onClick={() => { setView('quiz'); setQuestionIndex(0); setSelectedAnswer(null); setScore(0); }} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#ffb23e] px-5 py-3 text-sm font-bold text-[#102737] hover:bg-[#f2a52b]">Пройти тест <ChevronRight size={17} /></button></section>
-              </div>
-              <div className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-6">
-                <button disabled={topicIndex === 0} onClick={() => chooseTopic(topicIndex - 1)} className="inline-flex items-center gap-2 rounded-xl px-4 py-2 font-semibold text-slate-600 disabled:opacity-30"><ChevronLeft size={18} />Предыдущая</button>
-                <button onClick={() => setCompleted((items) => items.includes(topicIndex) ? items.filter((item) => item !== topicIndex) : [...items, topicIndex])} className={`rounded-xl px-5 py-3 font-bold ${completed.includes(topicIndex) ? 'bg-[#dff5ef] text-[#0a6d65]' : 'bg-[#102f43] text-white'}`}>{completed.includes(topicIndex) ? 'Тема изучена ✓' : 'Отметить изученной'}</button>
-                <button disabled={topicIndex === topics.length - 1} onClick={() => chooseTopic(topicIndex + 1)} className="inline-flex items-center gap-2 rounded-xl px-4 py-2 font-semibold text-slate-600 disabled:opacity-30">Следующая<ChevronRight size={18} /></button>
-              </div>
-            </article>
-          ) : (
-            <article className="rounded-3xl bg-[#f7f6f0] p-6 text-[#102737] shadow-2xl sm:p-9">
-              <div className="flex items-center justify-between gap-4 border-b border-slate-200 pb-6"><div><p className="text-sm font-bold uppercase tracking-[.15em] text-[#148d85]">Тест по теме</p><h2 className="mt-2 text-2xl font-bold">{topic.title}</h2></div><div className="rounded-2xl bg-[#e5f1ef] px-4 py-3 text-center"><p className="text-xs font-semibold text-slate-500">Вопрос</p><b className="text-lg">{quizProgress}</b></div></div>
-              <div className="mx-auto max-w-3xl py-9"><div className="mb-6 flex gap-3"><CircleHelp className="mt-1 shrink-0 text-[#148d85]" /><h3 className="text-2xl font-bold leading-9">{question.prompt}</h3></div><div className="space-y-3">{question.choices.map((choice, index) => { const chosen = selectedAnswer === index; const correct = answered && index === question.answer; return <button key={choice} onClick={() => answerQuestion(index)} className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left text-base transition ${correct ? 'border-[#27a396] bg-[#dcf5ef]' : chosen ? 'border-[#d96960] bg-[#fff0ed]' : 'border-slate-200 bg-white hover:border-[#ffb23e]'}`}><span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-100 font-bold">{String.fromCharCode(65 + index)}</span><span className="flex-1">{choice}</span>{correct && <CheckCircle2 className="text-[#17877e]" />}{chosen && !correct && <XCircle className="text-[#c4564f]" />}</button>; })}</div>
-                {answered && <div className={`mt-5 rounded-2xl p-5 ${isCorrect ? 'bg-[#dcf5ef] text-[#075e57]' : 'bg-[#fff0ed] text-[#813b36]'}`}><p className="font-bold">{isCorrect ? 'Верно' : 'Неверно'}</p><p className="mt-1 leading-7">{question.explanation}</p></div>}
-                <div className="mt-6 flex items-center justify-between"><span className="text-sm font-semibold text-slate-500">Результат: {score} / {topic.quiz.length}</span>{answered && questionIndex < topic.quiz.length - 1 ? <button onClick={nextQuestion} className="inline-flex items-center gap-2 rounded-xl bg-[#102f43] px-5 py-3 font-bold text-white">Следующий вопрос<ChevronRight size={17} /></button> : answered ? <button onClick={() => { setQuestionIndex(0); setSelectedAnswer(null); setScore(0); }} className="inline-flex items-center gap-2 rounded-xl bg-[#ffb23e] px-5 py-3 font-bold"><RotateCcw size={17} />Пройти заново</button> : null}</div>
-              </div>
-            </article>
-          )}
-          <p className="mt-4 px-2 text-sm leading-6 text-slate-400">Предварительный курс по структуре открытых companion-материалов Lazar, Feng & Hochheiser. После получения книги профессора содержание будет сверено с точным pensum IN2020.</p>
+    <div className="min-h-screen bg-[#f6f8fb] text-[#112838]">
+      <LearningHeader title={topic.title} label="Проверка знаний" progress={(questionIndex + 1) / questions.length} onHome={goHome} />
+      <main className="mx-auto max-w-3xl px-4 pb-20 pt-8 sm:px-6 sm:pt-12">
+        <div className="mb-6 flex items-center justify-between text-sm font-semibold text-slate-500"><span>Вопрос {questionIndex + 1} из {questions.length}</span><span>{answers.filter(Boolean).length} верных</span></div>
+        <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_18px_50px_rgba(18,43,60,.08)] sm:p-9">
+          <div className="mb-7 flex gap-4"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#e3f5f1] text-[#13877f]"><CircleHelp size={22} /></span><h1 className="text-xl font-bold leading-8 sm:text-2xl sm:leading-9">{question.prompt}</h1></div>
+          <div className="space-y-3">{question.choices.map((choice, index) => { const chosen = selectedAnswer === index; const right = selectedAnswer !== null && index === question.answer; return <button key={`${questionIndex}-${choice}`} onClick={() => submitAnswer(index)} className={`flex w-full items-start gap-3 rounded-2xl border-2 p-4 text-left text-base leading-6 transition sm:p-5 ${right ? 'border-[#22a495] bg-[#e1f7f1]' : chosen ? 'border-[#e36b60] bg-[#fff0ed]' : 'border-slate-200 bg-white hover:border-[#f2aa35] hover:bg-[#fffaf0]'}`}><span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-100 text-sm font-bold">{String.fromCharCode(65 + index)}</span><span className="flex-1">{choice}</span>{right && <CheckCircle2 className="shrink-0 text-[#16877e]" />}{chosen && !right && <XCircle className="shrink-0 text-[#c8544b]" />}</button>; })}</div>
+          {selectedAnswer !== null && <div className={`mt-6 rounded-2xl p-5 ${correct ? 'bg-[#e1f7f1] text-[#075f58]' : 'bg-[#fff0ed] text-[#7f3b36]'}`}><p className="font-bold">{correct ? 'Верно!' : 'Почти. Посмотри объяснение:'}</p><p className="mt-2 leading-7">{question.explanation}</p></div>}
         </section>
-      </div>
-    </main>
+        <div className="mt-6 flex justify-end">{selectedAnswer !== null && <button onClick={nextQuestion} className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-[#123b53] px-6 py-3 font-bold text-white shadow-lg hover:bg-[#19516b]">{questionIndex === questions.length - 1 ? 'Показать результат' : 'Следующий вопрос'}<ArrowRight size={18} /></button>}</div>
+      </main>
+    </div>
   );
+}
+
+function Dashboard({ onLesson, onQuiz, completedLessons, bestScores }: { onLesson: (index:number) => void; onQuiz: (index:number) => void; completedLessons:number[]; bestScores:Record<number,number> }) {
+  const completion = Math.round(completedLessons.length / topics.length * 100);
+  return <div className="min-h-screen bg-[#081d2d] text-white">
+    <header className="border-b border-white/10"><div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8"><div className="flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#ffb33f] text-[#081d2d]"><FlaskConical /></span><div><p className="text-xs font-bold tracking-[.16em] text-[#ffb33f]">UNIVERSITY OF OSLO · IN2020</p><h1 className="text-lg font-bold">Methods in Interaction Design</h1></div></div><span className="hidden rounded-full bg-white/8 px-4 py-2 text-sm font-semibold text-slate-300 sm:block">Подготовка к экзамену</span></div></header>
+    <main className="mx-auto max-w-7xl px-5 pb-20 pt-8 sm:px-8 sm:pt-12">
+      <section className="grid gap-8 rounded-[32px] border border-white/10 bg-gradient-to-br from-[#123e57] to-[#0c293d] p-7 shadow-2xl sm:p-10 lg:grid-cols-[1fr_320px]">
+        <div><p className="text-sm font-bold uppercase tracking-[.18em] text-[#65d7c7]">Учебная карта</p><h2 className="mt-3 max-w-3xl text-4xl font-bold leading-tight tracking-tight sm:text-5xl">Изучи методы. Научись выбирать их. Проверь себя.</h2><p className="mt-5 max-w-2xl text-lg leading-8 text-slate-300">Каждая тема — самостоятельная лекция с объяснениями, примерами, ловушками и экзаменационной подсказкой. Тест можно открыть сразу, если нужно быстро проверить знания.</p></div>
+        <div className="flex flex-col justify-center rounded-3xl bg-white/7 p-6"><div className="flex items-end justify-between"><div><p className="text-sm text-slate-400">Общий прогресс</p><p className="mt-1 text-4xl font-bold">{completion}%</p></div><Target className="text-[#65d7c7]" size={38} /></div><div className="mt-5 h-3 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-[#65d7c7] transition-all" style={{width:`${completion}%`}} /></div><p className="mt-3 text-sm text-slate-400">{completedLessons.length} из {topics.length} лекций изучено</p></div>
+      </section>
+      <div className="mt-12 flex items-end justify-between gap-4"><div><p className="text-sm font-bold uppercase tracking-[.16em] text-[#ffb33f]">16 тем · {topics.length * questionsPerTopic} вопросов</p><h2 className="mt-2 text-3xl font-bold">Выбери тему</h2></div><p className="hidden max-w-md text-right text-sm leading-6 text-slate-400 md:block">Жёлтая кнопка открывает тест сразу — проходить лекцию перед этим необязательно.</p></div>
+      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{topics.map((topic,index) => { const score = bestScores[index] ?? 0; return <article key={topic.id} className="group flex min-h-[330px] flex-col rounded-[26px] border border-white/10 bg-[#0d2a3e] p-6 transition hover:-translate-y-1 hover:border-[#65d7c7]/40 hover:shadow-xl"><div className="flex items-start justify-between"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-white/8 font-bold text-[#65d7c7]">{String(topic.chapter).padStart(2,'0')}</span>{completedLessons.includes(index) && <span className="inline-flex items-center gap-1 rounded-full bg-[#65d7c7]/15 px-3 py-1 text-xs font-bold text-[#65d7c7]"><Check size={14}/>Изучено</span>}</div><p className="mt-5 text-xs font-bold uppercase tracking-[.12em] text-slate-400">{topic.english}</p><h3 className="mt-2 text-2xl font-bold leading-8">{topic.title}</h3><p className="mt-3 line-clamp-3 text-base leading-7 text-slate-300">{topic.summary}</p><div className="mt-auto pt-6"><div className="mb-3 flex items-center justify-between text-sm text-slate-400"><span className="inline-flex items-center gap-2"><Clock3 size={15}/>15–25 мин</span>{score > 0 && <span>Лучший тест: {score}/{questionsPerTopic}</span>}</div><div className="grid grid-cols-2 gap-3"><button onClick={()=>onLesson(index)} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white px-3 font-bold text-[#102b3d] hover:bg-slate-100"><BookOpen size={17}/>Изучать</button><button onClick={()=>onQuiz(index)} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[#ffb33f] px-3 font-bold text-[#102b3d] hover:bg-[#f4a72d]"><ListChecks size={17}/>Тест · {questionsPerTopic}</button></div></div></article>; })}</div>
+      <section className="mt-12 rounded-[28px] border border-white/10 bg-white/5 p-6 sm:p-8"><h2 className="text-xl font-bold">Источники текущей версии</h2><p className="mt-2 max-w-3xl leading-7 text-slate-300">Структура курса основана на открытых companion-материалах второго издания Research Methods in Human–Computer Interaction и опубликованном описании заданий IN2020. Дополнительные ориентиры: Nielsen Norman Group для usability и heuristic evaluation, Belmont Report для исследовательской этики. После загрузки книги профессора содержание будет сверено с точным pensum.</p><div className="mt-4 flex flex-wrap gap-3 text-sm font-semibold"><a className="rounded-xl bg-white/8 px-4 py-2 text-[#65d7c7] hover:bg-white/12" href="https://shop.elsevier.com/books/book-companion/9780128053904" target="_blank" rel="noreferrer">Elsevier Book Companion</a><a className="rounded-xl bg-white/8 px-4 py-2 text-[#65d7c7] hover:bg-white/12" href="https://www.nngroup.com/articles/ten-usability-heuristics/" target="_blank" rel="noreferrer">Nielsen heuristics</a><a className="rounded-xl bg-white/8 px-4 py-2 text-[#65d7c7] hover:bg-white/12" href="https://www.hhs.gov/ohrp/regulations-and-policy/belmont-report/read-the-belmont-report/" target="_blank" rel="noreferrer">Belmont Report</a></div></section>
+    </main>
+  </div>;
+}
+
+function Lesson({ topicIndex, step, totalSteps, onStep, onHome, onQuiz }: { topicIndex:number; step:number; totalSteps:number; onStep:(step:number)=>void; onHome:()=>void; onQuiz:()=>void }) {
+  const topic = topics[topicIndex];
+  return <div className="min-h-screen bg-[#f6f8fb] text-[#112838]">
+    <LearningHeader title={topic.title} label={`Лекция ${topic.chapter} из ${topics.length}`} progress={(step + 1) / totalSteps} onHome={onHome} />
+    <main className="mx-auto max-w-4xl px-4 pb-24 pt-8 sm:px-6 sm:pt-14">
+      <div className="mb-7 flex items-center gap-2 text-sm font-semibold text-[#16877e]"><GraduationCap size={18}/>{topic.english}</div>
+      <header className="mb-12"><h1 className="text-4xl font-bold leading-tight tracking-tight sm:text-6xl">{topic.title}</h1><p className="mt-6 max-w-3xl text-xl leading-9 text-slate-600">{topic.summary}</p></header>
+      <section className="mb-12 rounded-[28px] bg-[#10364d] p-6 text-white sm:p-9"><p className="text-sm font-bold uppercase tracking-[.16em] text-[#65d7c7]">Цель темы</p><p className="mt-4 text-xl font-semibold leading-8">После изучения ты сможешь объяснить ключевые понятия своими словами, сравнить альтернативы и обосновать выбор метода в экзаменационном кейсе.</p></section>
+      <div className="space-y-14">{topic.sections.map((section,index)=><section key={section.heading} className="scroll-mt-28"><div className="mb-5 flex items-center gap-4"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#dff5ef] text-lg font-bold text-[#137d75]">{index+1}</span><h2 className="text-3xl font-bold tracking-tight">{section.heading}</h2></div><div className="rounded-[26px] border border-slate-200 bg-white p-6 shadow-sm sm:p-9"><p className="text-lg leading-9 text-slate-700">{section.body}</p><div className="mt-7 rounded-2xl border-l-4 border-[#ffb33f] bg-[#fff8e8] p-5"><p className="text-sm font-bold uppercase tracking-[.12em] text-[#8e5b00]">Как думать на экзамене</p><p className="mt-2 text-base leading-7 text-slate-700">Не ограничивайся определением. Назови, какую исследовательскую задачу решает этот элемент, какие данные он даёт и какое ограничение нужно признать.</p></div></div></section>)}</div>
+      <section className="mt-14 rounded-[28px] bg-[#e3f5f1] p-6 sm:p-9"><p className="text-sm font-bold uppercase tracking-[.16em] text-[#137d75]">Ключевые выводы</p><ul className="mt-5 space-y-4">{topic.keyPoints.map(point=><li key={point} className="flex gap-3 text-lg leading-8"><CheckCircle2 className="mt-1 shrink-0 text-[#159087]" size={21}/>{point}</li>)}</ul></section>
+      <section className="mt-8 rounded-[28px] border border-[#efc472] bg-[#fff7e4] p-6 sm:p-9"><p className="text-sm font-bold uppercase tracking-[.16em] text-[#8e5b00]">Подсказка для развёрнутого ответа</p><h2 className="mt-3 text-2xl font-bold leading-9">{topic.examPrompt}</h2><ol className="mt-6 space-y-3 text-base leading-7 text-slate-700"><li><b>1. Определи понятие</b> одним точным предложением.</li><li><b>2. Объясни механизм:</b> что делает исследователь и какие данные получает.</li><li><b>3. Сравни альтернативу</b> по преимуществам и ограничениям.</li><li><b>4. Примени к кейсу</b> и явно обоснуй решение.</li></ol></section>
+      <section className="mt-12 rounded-[32px] bg-[#0e3147] p-7 text-center text-white sm:p-10"><Sparkles className="mx-auto text-[#ffb33f]" size={32}/><h2 className="mt-4 text-3xl font-bold">Готов проверить знания?</h2><p className="mx-auto mt-3 max-w-xl text-lg leading-8 text-slate-300">В тесте {questionsPerTopic} вопросов. После каждого ответа появится объяснение, поэтому тест тоже является частью обучения.</p><button onClick={onQuiz} className="mt-7 inline-flex min-h-14 items-center gap-2 rounded-2xl bg-[#ffb33f] px-7 py-4 font-bold text-[#102b3d] hover:bg-[#f4a72d]">Начать тест<ListChecks size={19}/></button></section>
+      <div className="mt-10 flex items-center justify-between gap-4"><button onClick={onHome} className="inline-flex items-center gap-2 rounded-xl px-3 py-3 font-semibold text-slate-600"><ArrowLeft size={18}/>К темам</button><div className="flex gap-2">{Array.from({length:totalSteps}).map((_,index)=><button key={index} aria-label={`Шаг ${index+1}`} onClick={()=>onStep(index)} className={`h-2.5 rounded-full transition-all ${index<=step?'w-7 bg-[#16877e]':'w-2.5 bg-slate-300'}`}/>)}</div></div>
+    </main>
+  </div>;
+}
+
+function Result({ topicIndex, correct, total, onRetry, onHome, onLesson }: { topicIndex:number; correct:number; total:number; onRetry:()=>void; onHome:()=>void; onLesson:()=>void }) {
+  const percent = Math.round(correct / total * 100); const passed = percent >= 75;
+  return <div className="grid min-h-screen place-items-center bg-[#081d2d] px-4 py-10 text-white"><main className="w-full max-w-2xl rounded-[32px] border border-white/10 bg-[#0d2a3e] p-7 text-center shadow-2xl sm:p-12"><span className={`mx-auto grid h-20 w-20 place-items-center rounded-full ${passed?'bg-[#65d7c7] text-[#082237]':'bg-[#ffb33f] text-[#082237]'}`}>{passed?<Trophy size={38}/>:<Target size={38}/>}</span><p className="mt-6 text-sm font-bold uppercase tracking-[.15em] text-[#65d7c7]">{topics[topicIndex].title}</p><h1 className="mt-2 text-4xl font-bold">{passed?'Тема усвоена':'Стоит повторить материал'}</h1><p className="mt-5 text-6xl font-bold text-[#ffb33f]">{percent}%</p><p className="mt-2 text-lg text-slate-300">{correct} правильных ответов из {total}</p><div className="mt-8 grid gap-3 sm:grid-cols-3"><button onClick={onHome} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white/8 px-4 font-bold"><Home size={17}/>К темам</button><button onClick={onLesson} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white px-4 font-bold text-[#102b3d]"><BookOpen size={17}/>Повторить</button><button onClick={onRetry} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[#ffb33f] px-4 font-bold text-[#102b3d]"><RotateCcw size={17}/>Ещё раз</button></div></main></div>;
+}
+
+function LearningHeader({ title, label, progress, onHome }: { title:string; label:string; progress:number; onHome:()=>void }) {
+  return <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur"><div className="mx-auto flex max-w-5xl items-center gap-4 px-4 py-4 sm:px-6"><button onClick={onHome} aria-label="Вернуться к темам" className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-slate-100 text-slate-700 hover:bg-slate-200"><ArrowLeft size={20}/></button><div className="min-w-0 flex-1"><div className="flex justify-between gap-3 text-xs font-bold uppercase tracking-[.1em] text-slate-500"><span className="truncate">{label}</span><span>{Math.round(progress*100)}%</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[#23a697] transition-all" style={{width:`${progress*100}%`}}/></div></div><p className="hidden max-w-52 truncate text-sm font-bold text-[#123b53] sm:block">{title}</p></div></header>;
 }
