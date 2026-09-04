@@ -1,26 +1,114 @@
 'use client';
 
-import { useState } from 'react';
-import { Check, ChevronRight, Clock3, FlaskConical, RotateCcw, Sparkles } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { BookOpen, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleHelp, FlaskConical, ListChecks, RotateCcw, XCircle } from 'lucide-react';
+import { topics, totalQuestions } from '@/lib/course-content';
 
-type Topic = { n: string; title: string; en: string; min: number; summary: string; outcomes: string[]; terms: [string, string][]; q: [string, string[], number, string] };
-const topics: Topic[] = [
-  { n:'01', title:'Исследование в HCI', en:'HCI research foundations', min:18, summary:'Как формулировать исследовательский вопрос и выбирать метод, а не подгонять вопрос под любимый метод.', outcomes:['Различать exploratory, descriptive и experimental research','Связывать исследовательский вопрос с подходящим методом','Объяснять три волны HCI'], terms:[['Research question','Конкретный вопрос, на который исследование должно дать обоснованный ответ.'],['Triangulation','Комбинация методов или источников данных для более надёжной интерпретации.']], q:['Что лучше всего описывает exploratory research?',['Проверка заранее заданной причинной гипотезы','Поиск понимания малоизученного явления','Расчёт статистической значимости','Измерение скорости выполнения задачи'],1,'Exploratory research используют, когда нужно сначала понять контекст, людей и возможные вопросы.'] },
-  { n:'02', title:'Эксперименты и метрики', en:'Experimental design', min:28, summary:'Причинность, независимые и зависимые переменные, between/within-subjects design и базовая статистическая логика.', outcomes:['Определять independent и dependent variables','Сравнивать within- и between-subjects design','Замечать confounds, order effects и угрозы validity'], terms:[['Independent variable','Условие, которое исследователь намеренно изменяет.'],['Dependent variable','Наблюдаемый результат: время, ошибки, успех, оценка и т. п.']], q:['В тесте двух вариантов навигации измеряют время поиска товара. Что является dependent variable?',['Вариант навигации','Время поиска товара','Возраст участника','Инструкция теста'],1,'Время — измеряемый результат; вариант навигации — изменяемое условие.'] },
-  { n:'03', title:'Качественные методы', en:'Qualitative methods', min:25, summary:'Интервью, наблюдение и field studies: как увидеть практику пользователя, а не только услышать мнение о ней.', outcomes:['Подготовить semi-structured interview guide','Отличать observation от interview','Понимать роль context и reflexivity'], terms:[['Semi-structured interview','Интервью с подготовленными темами, но свободным порядком и уточняющими вопросами.'],['Contextual inquiry','Наблюдение и вопросы в реальной среде использования.']], q:['Когда наблюдение особенно полезно?',['Когда требуется доказать причинность','Когда нужно понять реальную практику и скрытые обходные действия','Когда нужна репрезентативная численная оценка','Когда участников нельзя видеть'],1,'Люди часто не замечают или не могут точно пересказать свои реальные привычки.'] },
-  { n:'04', title:'Анализ данных', en:'Data analysis', min:24, summary:'Переход от заметок и ответов к обоснованным находкам: coding, themes, interpretation и ограничения.', outcomes:['Разделять codes, categories и themes','Объяснять путь от данных к выводу','Не путать корреляцию с причинностью'], terms:[['Thematic analysis','Систематический поиск повторяющихся смысловых паттернов в качественных данных.'],['Validity','Насколько вывод отражает то, что исследование заявляет измерить или объяснить.']], q:['Что наиболее точно описывает theme в thematic analysis?',['Одна яркая цитата','Смысловой паттерн, связанный с вопросом исследования','Любой числовой результат','Список участников'],1,'Theme объединяет связанные коды в осмысленный паттерн, отвечающий на исследовательский вопрос.'] },
-  { n:'05', title:'Оценка usability', en:'Usability evaluation', min:26, summary:'Usability testing, heuristic evaluation и выбор метрик эффективности, результативности и удовлетворённости.', outcomes:['Спланировать moderated usability test','Применять Nielsen heuristics','Подбирать метрики к цели теста'], terms:[['Usability','Степень, в которой продукт помогает заданным пользователям эффективно, результативно и удовлетворённо достигать целей.'],['Think aloud','Техника, когда участник проговаривает мысли во время выполнения задачи.']], q:['Какая техника обычно относится к expert inspection, а не к user testing?',['Think aloud','Heuristic evaluation','Task success rate','Наблюдение участника'],1,'Heuristic evaluation проводят эксперты, проверяя интерфейс по эвристикам.'] },
-  { n:'06', title:'Участники и выборка', en:'Sampling & recruitment', min:16, summary:'Кого исследовать, как рекрутировать участников и почему «достаточно много» зависит от вопроса, а не от магического числа.', outcomes:['Сравнивать probability и non-probability sampling','Описывать критерии inclusion/exclusion','Выбирать стратегию recruitment'], terms:[['Sampling frame','Практически доступный список или источник, из которого набирают выборку.'],['Purposive sampling','Намеренный набор людей с релевантным опытом или характеристиками.']], q:['Для глубинных интервью с незрячими пользователями лучше всего подходит:',['Случайный набор прохожих','Purposive sampling по релевантному опыту','A/B-тест без участников','Только коллеги исследователя'],1,'Нужно найти людей, имеющих именно тот опыт, который исследование стремится понять.'] },
-  { n:'07', title:'Этика и согласие', en:'Ethics & consent', min:17, summary:'Informed consent, приватность, минимизация вреда и честное обращение с данными участников.', outcomes:['Составить понятный informed-consent form','Распознавать privacy risks','Применять respect, beneficence, justice'], terms:[['Informed consent','Добровольное согласие после понятного объяснения цели, процедуры, рисков, данных и права выйти.'],['Anonymisation','Удаление или изменение идентификаторов, чтобы человека нельзя было идентифицировать.']], q:['Что обязательно нужно указать в informed consent?',['Только название исследования','Право прекратить участие без последствий','Ожидаемый ответ участника','Личные контакты других участников'],1,'Добровольность означает, что участник может отказаться или выйти в любой момент без наказания.'] },
-];
+type View = 'study' | 'quiz';
 
 export default function Home() {
-  const [selected, setSelected] = useState(0); const [done, setDone] = useState<number[]>([]); const [answer, setAnswer] = useState<number | null>(null); const t = topics[selected]; const progress = Math.round(done.length / topics.length * 100);
-  const choose = (i:number) => { setSelected(i); setAnswer(null); };
-  return <main className="min-h-screen bg-[#071b2b] text-slate-100"><div className="mx-auto max-w-7xl px-5 py-7 sm:px-8 lg:px-10">
-    <header className="mb-8 flex items-center justify-between"><div className="flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#faaf3c] text-[#071b2b]"><FlaskConical size={22}/></div><div><p className="text-sm font-semibold tracking-wide text-[#faaf3c]">IN2020 · EXAM COMPANION</p><h1 className="text-lg font-bold">Methods in Interaction Design</h1></div></div><div className="hidden items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-slate-200 sm:flex"><Sparkles size={16} className="text-[#72d8ca]"/> Черновая программа</div></header>
-    <section className="mb-7 grid gap-4 rounded-3xl border border-white/10 bg-gradient-to-br from-[#123b54] to-[#0b2639] p-6 shadow-2xl sm:grid-cols-[1fr_auto] sm:p-8"><div><p className="mb-2 text-sm font-semibold uppercase tracking-[.18em] text-[#72d8ca]">План подготовки</p><h2 className="max-w-xl text-3xl font-bold tracking-tight sm:text-4xl">Понимай метод. Обосновывай выбор. Отвечай уверенно.</h2><p className="mt-3 max-w-2xl text-base leading-7 text-slate-300">Каркас по открытым материалам и основной книге Lazar, Feng & Hochheiser. Когда появится книга курса, темы и упражнения обновятся без изменения сайта.</p></div><div className="flex min-w-40 flex-col justify-end"><div className="mb-2 flex justify-between text-sm"><span>Освоено</span><b>{progress}%</b></div><div className="h-2 overflow-hidden rounded-full bg-white/15"><div className="h-full rounded-full bg-[#faaf3c]" style={{width:`${progress}%`}}/></div><p className="mt-3 text-xs text-slate-400">{done.length} из {topics.length} тем</p></div></section>
-    <div className="grid gap-6 lg:grid-cols-[290px_minmax(0,1fr)]"><aside className="rounded-3xl border border-white/10 bg-[#0c2638] p-3 lg:sticky lg:top-5 lg:h-[calc(100vh-40px)]"><p className="px-3 pb-2 pt-2 text-xs font-bold uppercase tracking-[.14em] text-slate-400">Темы</p><nav className="space-y-1">{topics.map((x,i)=><button key={x.n} onClick={()=>choose(i)} className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left ${selected===i?'bg-[#174861] text-white':'text-slate-300 hover:bg-white/5'}`}><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs font-bold ${done.includes(i)?'bg-[#72d8ca] text-[#071b2b]':'bg-white/10 text-slate-300'}`}>{done.includes(i)?<Check size={15}/>:x.n}</span><span className="min-w-0"><span className="block text-sm font-semibold">{x.title}</span><span className="block truncate text-xs text-slate-400">{x.en}</span></span></button>)}</nav></aside>
-    <article><div className="mb-5 flex flex-wrap items-center gap-2 text-sm text-slate-400"><span>{t.n}</span><ChevronRight size={15}/><span>{t.en}</span><span className="mx-1 text-white/15">|</span><Clock3 size={15}/><span>{t.min} мин</span></div><div className="rounded-3xl bg-[#f6f5ef] p-6 text-[#112334] shadow-xl sm:p-9"><div className="flex flex-col justify-between gap-5 sm:flex-row"><div><h2 className="text-3xl font-bold tracking-tight">{t.title}</h2><p className="mt-3 max-w-2xl text-lg leading-8 text-slate-600">{t.summary}</p></div><button onClick={()=>setDone(v=>v.includes(selected)?v.filter(a=>a!==selected):[...v,selected])} className={`h-fit shrink-0 rounded-xl px-4 py-3 text-sm font-bold ${done.includes(selected)?'bg-[#d7f4ef] text-[#0c605c]':'bg-[#112e43] text-white'}`}>{done.includes(selected)?'Тема освоена':'Отметить освоенной'}</button></div><section className="mt-9"><h3 className="text-sm font-bold uppercase tracking-[.14em] text-[#648090]">После темы Ника сможет</h3><div className="mt-3 grid gap-3 sm:grid-cols-3">{t.outcomes.map(x=><div key={x} className="rounded-2xl border border-[#dbe3e3] bg-white p-4 text-sm leading-6"><Check size={16} className="mb-2 text-[#12958d]"/>{x}</div>)}</div></section><section className="mt-9 grid gap-4 md:grid-cols-2"><div><h3 className="mb-3 text-sm font-bold uppercase tracking-[.14em] text-[#648090]">Ключевые термины</h3><div className="space-y-3">{t.terms.map(([term,def])=><div key={term} className="rounded-2xl bg-[#e7f2f0] p-4"><p className="font-bold text-[#124d54]">{term}</p><p className="mt-1 text-sm leading-6 text-slate-600">{def}</p></div>)}</div></div><div className="rounded-2xl border border-[#f2c77a] bg-[#fff8e9] p-5"><p className="text-sm font-bold uppercase tracking-[.14em] text-[#9a6200]">Быстрая проверка</p><h3 className="mt-3 text-lg font-bold leading-7">{t.q[0]}</h3><div className="mt-4 space-y-2">{t.q[1].map((x,i)=><button key={x} onClick={()=>setAnswer(i)} className={`w-full rounded-xl border p-3 text-left text-sm ${answer===i?(i===t.q[2]?'border-[#16a397] bg-[#dcf6f1]':'border-[#db6e65] bg-[#fff0ed]'):'border-[#e6dac0] bg-white hover:border-[#f0ad32]'}`}>{x}</button>)}</div>{answer!==null&&<p className={`mt-4 rounded-xl p-3 text-sm leading-6 ${answer===t.q[2]?'bg-[#dcf6f1] text-[#075c56]':'bg-[#fff0ed] text-[#863d37]'}`}>{answer===t.q[2]?'Верно. ':'Пока нет. '}{t.q[3]}</p>}<button onClick={()=>setAnswer(null)} className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[#416172]"><RotateCcw size={15}/> Попробовать снова</button></div></section></div></article></div>
-  </div></main>;
+  const [topicIndex, setTopicIndex] = useState(0);
+  const [view, setView] = useState<View>('study');
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [completed, setCompleted] = useState<number[]>([]);
+  const [score, setScore] = useState(0);
+  const topic = topics[topicIndex];
+  const question = topic.quiz[questionIndex];
+  const progress = Math.round((completed.length / topics.length) * 100);
+  const answered = selectedAnswer !== null;
+  const isCorrect = selectedAnswer === question.answer;
+  const quizProgress = useMemo(() => `${questionIndex + 1} / ${topic.quiz.length}`, [questionIndex, topic.quiz.length]);
+
+  const chooseTopic = (index: number) => {
+    setTopicIndex(index);
+    setView('study');
+    setQuestionIndex(0);
+    setSelectedAnswer(null);
+    setScore(0);
+  };
+
+  const answerQuestion = (index: number) => {
+    if (answered) return;
+    setSelectedAnswer(index);
+    if (index === question.answer) setScore((value) => value + 1);
+  };
+
+  const nextQuestion = () => {
+    if (questionIndex < topic.quiz.length - 1) {
+      setQuestionIndex((value) => value + 1);
+      setSelectedAnswer(null);
+    }
+  };
+
+  return (
+    <main className="min-h-screen bg-[#071b2b] text-slate-100">
+      <header className="border-b border-white/10 bg-[#071b2b]/95">
+        <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-4 px-5 py-5 sm:px-8">
+          <div className="flex items-center gap-3">
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#ffb23e] text-[#071b2b]"><FlaskConical size={22} /></div>
+            <div><p className="text-sm font-bold tracking-[.12em] text-[#ffb23e]">IN2020</p><h1 className="text-lg font-bold">Exam Companion</h1></div>
+          </div>
+          <div className="flex gap-3 text-sm">
+            <span className="rounded-full bg-white/8 px-4 py-2"><b>{topics.length}</b> тем</span>
+            <span className="rounded-full bg-white/8 px-4 py-2"><b>{totalQuestions}</b> вопросов</span>
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto grid max-w-[1500px] gap-5 px-4 py-5 lg:grid-cols-[310px_minmax(0,1fr)] lg:px-8">
+        <aside className="rounded-3xl border border-white/10 bg-[#0c2638] p-3 lg:sticky lg:top-5 lg:h-[calc(100vh-40px)] lg:overflow-y-auto">
+          <div className="mb-3 px-3 pt-2">
+            <div className="mb-2 flex justify-between text-sm"><span className="text-slate-400">Пройдено</span><b>{progress}%</b></div>
+            <div className="h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-[#65d7c7] transition-all" style={{ width: `${progress}%` }} /></div>
+          </div>
+          <nav className="space-y-1" aria-label="Темы курса">
+            {topics.map((item, index) => (
+              <button key={item.id} onClick={() => chooseTopic(index)} className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition ${topicIndex === index ? 'bg-[#19506b] text-white' : 'text-slate-300 hover:bg-white/5'}`}>
+                <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl text-xs font-bold ${completed.includes(index) ? 'bg-[#65d7c7] text-[#071b2b]' : 'bg-white/10'}`}>{completed.includes(index) ? <Check size={16} /> : String(item.chapter).padStart(2, '0')}</span>
+                <span className="min-w-0"><span className="block text-sm font-semibold">{item.title}</span><span className="block truncate text-xs text-slate-400">{item.english}</span></span>
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        <section className="min-w-0">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm text-slate-400"><span>Глава {topic.chapter}</span><ChevronRight size={15} /><span>{topic.english}</span></div>
+            <div className="flex rounded-xl bg-white/8 p-1" role="tablist" aria-label="Режим изучения">
+              <button onClick={() => setView('study')} className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold ${view === 'study' ? 'bg-[#f7f6f0] text-[#102737]' : 'text-slate-300'}`}><BookOpen size={16} />Материал</button>
+              <button onClick={() => { setView('quiz'); setQuestionIndex(0); setSelectedAnswer(null); setScore(0); }} className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold ${view === 'quiz' ? 'bg-[#f7f6f0] text-[#102737]' : 'text-slate-300'}`}><ListChecks size={16} />Тест</button>
+            </div>
+          </div>
+
+          {view === 'study' ? (
+            <article className="rounded-3xl bg-[#f7f6f0] p-6 text-[#102737] shadow-2xl sm:p-9">
+              <div className="border-b border-slate-200 pb-7"><p className="text-sm font-bold uppercase tracking-[.15em] text-[#148d85]">Учебный материал</p><h2 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">{topic.title}</h2><p className="mt-4 max-w-4xl text-lg leading-8 text-slate-600">{topic.summary}</p></div>
+              <div className="mt-8 grid gap-5 xl:grid-cols-3">
+                {topic.sections.map((section, index) => <section key={section.heading} className="rounded-2xl border border-[#d9e2e1] bg-white p-5"><span className="mb-4 grid h-8 w-8 place-items-center rounded-xl bg-[#e1f4f0] text-sm font-bold text-[#147c75]">{index + 1}</span><h3 className="text-xl font-bold">{section.heading}</h3><p className="mt-3 text-base leading-7 text-slate-600">{section.body}</p></section>)}
+              </div>
+              <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_1fr]">
+                <section className="rounded-2xl bg-[#102f43] p-6 text-white"><h3 className="text-sm font-bold uppercase tracking-[.14em] text-[#65d7c7]">Запомнить</h3><ul className="mt-4 space-y-3">{topic.keyPoints.map((point) => <li key={point} className="flex gap-3 text-base leading-6"><CheckCircle2 className="mt-0.5 shrink-0 text-[#65d7c7]" size={19} />{point}</li>)}</ul></section>
+                <section className="rounded-2xl border border-[#efc472] bg-[#fff6df] p-6"><h3 className="text-sm font-bold uppercase tracking-[.14em] text-[#936000]">Экзаменационная тренировка</h3><p className="mt-4 text-lg font-semibold leading-7">{topic.examPrompt}</p><button onClick={() => { setView('quiz'); setQuestionIndex(0); setSelectedAnswer(null); setScore(0); }} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#ffb23e] px-5 py-3 text-sm font-bold text-[#102737] hover:bg-[#f2a52b]">Пройти тест <ChevronRight size={17} /></button></section>
+              </div>
+              <div className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-6">
+                <button disabled={topicIndex === 0} onClick={() => chooseTopic(topicIndex - 1)} className="inline-flex items-center gap-2 rounded-xl px-4 py-2 font-semibold text-slate-600 disabled:opacity-30"><ChevronLeft size={18} />Предыдущая</button>
+                <button onClick={() => setCompleted((items) => items.includes(topicIndex) ? items.filter((item) => item !== topicIndex) : [...items, topicIndex])} className={`rounded-xl px-5 py-3 font-bold ${completed.includes(topicIndex) ? 'bg-[#dff5ef] text-[#0a6d65]' : 'bg-[#102f43] text-white'}`}>{completed.includes(topicIndex) ? 'Тема изучена ✓' : 'Отметить изученной'}</button>
+                <button disabled={topicIndex === topics.length - 1} onClick={() => chooseTopic(topicIndex + 1)} className="inline-flex items-center gap-2 rounded-xl px-4 py-2 font-semibold text-slate-600 disabled:opacity-30">Следующая<ChevronRight size={18} /></button>
+              </div>
+            </article>
+          ) : (
+            <article className="rounded-3xl bg-[#f7f6f0] p-6 text-[#102737] shadow-2xl sm:p-9">
+              <div className="flex items-center justify-between gap-4 border-b border-slate-200 pb-6"><div><p className="text-sm font-bold uppercase tracking-[.15em] text-[#148d85]">Тест по теме</p><h2 className="mt-2 text-2xl font-bold">{topic.title}</h2></div><div className="rounded-2xl bg-[#e5f1ef] px-4 py-3 text-center"><p className="text-xs font-semibold text-slate-500">Вопрос</p><b className="text-lg">{quizProgress}</b></div></div>
+              <div className="mx-auto max-w-3xl py-9"><div className="mb-6 flex gap-3"><CircleHelp className="mt-1 shrink-0 text-[#148d85]" /><h3 className="text-2xl font-bold leading-9">{question.prompt}</h3></div><div className="space-y-3">{question.choices.map((choice, index) => { const chosen = selectedAnswer === index; const correct = answered && index === question.answer; return <button key={choice} onClick={() => answerQuestion(index)} className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left text-base transition ${correct ? 'border-[#27a396] bg-[#dcf5ef]' : chosen ? 'border-[#d96960] bg-[#fff0ed]' : 'border-slate-200 bg-white hover:border-[#ffb23e]'}`}><span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-100 font-bold">{String.fromCharCode(65 + index)}</span><span className="flex-1">{choice}</span>{correct && <CheckCircle2 className="text-[#17877e]" />}{chosen && !correct && <XCircle className="text-[#c4564f]" />}</button>; })}</div>
+                {answered && <div className={`mt-5 rounded-2xl p-5 ${isCorrect ? 'bg-[#dcf5ef] text-[#075e57]' : 'bg-[#fff0ed] text-[#813b36]'}`}><p className="font-bold">{isCorrect ? 'Верно' : 'Неверно'}</p><p className="mt-1 leading-7">{question.explanation}</p></div>}
+                <div className="mt-6 flex items-center justify-between"><span className="text-sm font-semibold text-slate-500">Результат: {score} / {topic.quiz.length}</span>{answered && questionIndex < topic.quiz.length - 1 ? <button onClick={nextQuestion} className="inline-flex items-center gap-2 rounded-xl bg-[#102f43] px-5 py-3 font-bold text-white">Следующий вопрос<ChevronRight size={17} /></button> : answered ? <button onClick={() => { setQuestionIndex(0); setSelectedAnswer(null); setScore(0); }} className="inline-flex items-center gap-2 rounded-xl bg-[#ffb23e] px-5 py-3 font-bold"><RotateCcw size={17} />Пройти заново</button> : null}</div>
+              </div>
+            </article>
+          )}
+          <p className="mt-4 px-2 text-sm leading-6 text-slate-400">Предварительный курс по структуре открытых companion-материалов Lazar, Feng & Hochheiser. После получения книги профессора содержание будет сверено с точным pensum IN2020.</p>
+        </section>
+      </div>
+    </main>
+  );
 }
