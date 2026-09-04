@@ -45,6 +45,7 @@ export const ui = {
     mastered: 'Тема усвоена', review: 'Стоит повторить материал', correctOf: (correct: number, total: number) => `${correct} правильных ответов из ${total}`,
     retry: 'Ещё раз', repeatLesson: 'Повторить', explanation: 'Объяснение',
     right: 'Верно!', wrong: 'Почти. Посмотри объяснение:', homeLabel: 'Вернуться к темам',
+    continueGoogle: 'Продолжить с Google', or: 'или',
   },
   en: {
     preparation: 'Exam preparation',
@@ -90,6 +91,7 @@ export const ui = {
     mastered: 'Topic mastered', review: 'Review the material', correctOf: (correct: number, total: number) => `${correct} correct answers out of ${total}`,
     retry: 'Try again', repeatLesson: 'Review lesson', explanation: 'Explanation',
     right: 'Correct!', wrong: 'Not quite. Review the explanation:', homeLabel: 'Return to all topics',
+    continueGoogle: 'Continue with Google', or: 'or',
   },
   no: {
     preparation: 'Eksamensforberedelse',
@@ -135,6 +137,7 @@ export const ui = {
     mastered: 'Temaet er mestret', review: 'Les stoffet en gang til', correctOf: (correct: number, total: number) => `${correct} riktige svar av ${total}`,
     retry: 'Prøv igjen', repeatLesson: 'Les leksjonen', explanation: 'Forklaring',
     right: 'Riktig!', wrong: 'Ikke helt. Les forklaringen:', homeLabel: 'Tilbake til alle temaer',
+    continueGoogle: 'Fortsett med Google', or: 'eller',
   },
 } as const;
 

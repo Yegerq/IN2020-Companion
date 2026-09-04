@@ -560,6 +560,18 @@ function AuthDialog({
             : 'Check your email to confirm the account.',
       );
   };
+  const authenticateWithGoogle = async () => {
+    setBusy(true);
+    setMessage('');
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) {
+      setMessage(error.message);
+      setBusy(false);
+    }
+  };
   return (
     <div
       className="fixed inset-0 z-50 grid place-items-center bg-black/20 p-4 backdrop-blur-sm"
@@ -580,7 +592,20 @@ function AuthDialog({
           </button>
         </div>
         <p className="mt-3 text-sm leading-6 text-[#77746d] dark:text-[#b9c2bc]">{copy.sync}</p>
-        <div className="mt-6 space-y-3">
+        <button
+          disabled={busy}
+          onClick={authenticateWithGoogle}
+          className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border border-[#deddd8] bg-white px-4 font-bold text-[#37352f] transition hover:bg-[#f7f7f5] disabled:opacity-50 dark:border-white/15 dark:bg-white/7 dark:text-[#f2f5f1] dark:hover:bg-white/12"
+        >
+          <GoogleMark />
+          {copy.continueGoogle}
+        </button>
+        <div className="my-5 flex items-center gap-3 text-xs font-bold uppercase tracking-[.12em] text-[#8a8983] dark:text-[#929f97]">
+          <span className="h-px flex-1 bg-[#e5e4df] dark:bg-white/10" />
+          {copy.or}
+          <span className="h-px flex-1 bg-[#e5e4df] dark:bg-white/10" />
+        </div>
+        <div className="space-y-3">
           <input
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -886,5 +911,16 @@ function ThemeButton({ theme, onClick }: { theme: Theme; onClick: () => void }) 
     >
       {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
     </button>
+  );
+}
+
+function GoogleMark() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 shrink-0">
+      <path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.39-.18-2.04H12v3.86h5.38a4.6 4.6 0 0 1-2 3.02v2.51h3.24c1.9-1.75 2.98-4.33 2.98-7.35Z" />
+      <path fill="#34A853" d="M12 22c2.7 0 4.98-.9 6.63-2.42l-3.25-2.51c-.9.6-2.05.96-3.38.96-2.61 0-4.82-1.76-5.61-4.13H3.04v2.59A10 10 0 0 0 12 22Z" />
+      <path fill="#FBBC05" d="M6.39 13.9A6 6 0 0 1 6.07 12c0-.66.11-1.3.32-1.9V7.51H3.04A10 10 0 0 0 2 12c0 1.61.39 3.14 1.04 4.49l3.35-2.59Z" />
+      <path fill="#EA4335" d="M12 5.97c1.47 0 2.79.51 3.83 1.5l2.87-2.88A9.62 9.62 0 0 0 12 2a10 10 0 0 0-8.96 5.51l3.35 2.59C7.18 7.73 9.39 5.97 12 5.97Z" />
+    </svg>
   );
 }
