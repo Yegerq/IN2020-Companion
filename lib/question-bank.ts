@@ -32,10 +32,7 @@ export function buildQuestionBank(topic: CourseTopic): QuizQuestion[] {
   const otherTopics = topics.filter((item) => item.id !== topic.id);
   const sections = buildLectureSections(topic).flatMap((section) =>
     section.paragraphs.map((body, paragraphIndex) => ({
-      heading:
-        paragraphIndex === 0
-          ? section.heading
-          : `${section.heading}: аспект ${paragraphIndex + 1}`,
+      heading: section.heading,
       body,
     })),
   );
