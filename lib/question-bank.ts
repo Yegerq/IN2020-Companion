@@ -37,10 +37,10 @@ export function buildQuestionBank(topic: CourseTopic, courseTopics: CourseTopic[
       body,
     })),
   );
-  const allSections = (item: CourseTopic) => [
-    ...item.sections,
-    ...(deepDives[item.id] ?? []),
-  ];
+  const allSections = (item: CourseTopic) =>
+    locale === 'ru'
+      ? [...item.sections, ...(deepDives[item.id] ?? [])]
+      : item.sections;
   const otherBodies = otherTopics.flatMap((item) =>
     allSections(item).map((section) => firstSentence(section.body)),
   );
