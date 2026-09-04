@@ -19,6 +19,8 @@ import {
   Trophy,
   UserRound,
   Languages,
+  Moon,
+  Sun,
   XCircle,
 } from 'lucide-react';
 import { topics } from '@/lib/course-content';
@@ -29,10 +31,12 @@ import {
 } from '@/lib/question-bank';
 import { buildLectureSections } from '@/lib/lecture-notes';
 import { supabase } from '@/lib/supabase';
-import { type Locale, topicTitle, ui } from '@/lib/i18n';
+import { type Locale, ui } from '@/lib/i18n';
+import { topicsForLocale } from '@/lib/localized-course';
 import type { User } from '@supabase/supabase-js';
 
 type Screen = 'home' | 'lesson' | 'quiz' | 'result';
+type Theme = 'light' | 'dark';
 
 export default function HomePage() {
   const [screen, setScreen] = useState<Screen>('home');
@@ -44,23 +48,32 @@ export default function HomePage() {
   const [completedLessons, setCompletedLessons] = useState<number[]>([]);
   const [bestScores, setBestScores] = useState<Record<number, number>>({});
   const [locale, setLocale] = useState<Locale>('ru');
+  const [theme, setTheme] = useState<Theme>('light');
   const [user, setUser] = useState<User | null>(null);
   const [authOpen, setAuthOpen] = useState(false);
-  const topic = topics[topicIndex];
+  const courseTopics = useMemo(() => topicsForLocale(locale), [locale]);
+  const topic = courseTopics[topicIndex];
   const questions = useMemo(() => {
-    const items = [...buildQuestionBank(topic)];
+    const items = [...buildQuestionBank(topic, courseTopics, locale)];
     for (let index = items.length - 1; index > 0; index -= 1) {
       const swap = Math.floor(Math.random() * (index + 1));
       [items[index], items[swap]] = [items[swap], items[index]];
     }
     return items;
-  }, [topic, quizRun]);
+  }, [topic, courseTopics, locale, quizRun]);
   const question = questions[questionIndex];
 
   useEffect(() => {
     const savedLocale = localStorage.getItem('in2020-locale') as Locale | null;
     if (savedLocale && ['ru', 'en', 'no'].includes(savedLocale))
       setLocale(savedLocale);
+    const savedTheme = localStorage.getItem('in2020-theme') as Theme | null;
+    const initialTheme =
+      savedTheme ??
+      (window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light');
+    setTheme(initialTheme);
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
@@ -72,6 +85,12 @@ export default function HomePage() {
     });
     return () => data.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    document.documentElement.style.colorScheme = theme;
+    localStorage.setItem('in2020-theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     localStorage.setItem('in2020-locale', locale);
@@ -174,6 +193,8 @@ export default function HomePage() {
         bestScores={bestScores}
         locale={locale}
         onLocale={setLocale}
+        theme={theme}
+        onTheme={() => setTheme((value) => (value === 'dark' ? 'light' : 'dark'))}
         user={user}
         onAuth={() => setAuthOpen(true)}
         onSignOut={() => supabase.auth.signOut()}
@@ -189,6 +210,8 @@ export default function HomePage() {
         onHome={goHome}
         onQuiz={() => openQuiz(topicIndex)}
         onComplete={markLessonComplete}
+        theme={theme}
+        onTheme={() => setTheme((value) => (value === 'dark' ? 'light' : 'dark'))}
       />
     );
   if (screen === 'result')
@@ -201,18 +224,22 @@ export default function HomePage() {
         onRetry={() => openQuiz(topicIndex)}
         onHome={goHome}
         onLesson={() => openLesson(topicIndex)}
+        theme={theme}
+        onTheme={() => setTheme((value) => (value === 'dark' ? 'light' : 'dark'))}
       />
     );
 
   const correct = selectedAnswer === question.answer;
   const copy = ui[locale];
   return (
-    <div className="min-h-screen bg-[#f6f8fb] text-[#112838]">
+    <div className="min-h-screen bg-[#f6f8fb] text-[#112838] dark:bg-[#111513] dark:text-[#edf1ec]">
       <LearningHeader
         title={topic.title}
-        label="Проверка знаний"
+        label={copy.knowledgeCheck}
         progress={(questionIndex + 1) / questions.length}
         onHome={goHome}
+        theme={theme}
+        onTheme={() => setTheme((value) => (value === 'dark' ? 'light' : 'dark'))}
       />
       <main className="mx-auto max-w-3xl px-4 pb-20 pt-8 sm:px-6 sm:pt-12">
         <div className="mb-6 flex items-center justify-between text-sm font-semibold text-slate-500">
@@ -223,7 +250,7 @@ export default function HomePage() {
             {answers.filter(Boolean).length} {copy.correct}
           </span>
         </div>
-        <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_18px_50px_rgba(18,43,60,.08)] sm:p-9">
+        <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_18px_50px_rgba(18,43,60,.08)] sm:p-9 dark:border-white/10 dark:bg-[#191e1b]">
           <div className="mb-7 flex gap-4">
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#e3f5f1] text-[#13877f]">
               <CircleHelp size={22} />
@@ -241,7 +268,7 @@ export default function HomePage() {
                 <button
                   key={`${questionIndex}-${choice}`}
                   onClick={() => submitAnswer(index)}
-                  className={`flex w-full items-start gap-3 rounded-2xl border-2 p-4 text-left text-base leading-6 transition sm:p-5 ${right ? 'border-[#22a495] bg-[#e1f7f1]' : chosen ? 'border-[#e36b60] bg-[#fff0ed]' : 'border-slate-200 bg-white hover:border-[#f2aa35] hover:bg-[#fffaf0]'}`}
+                  className={`flex w-full items-start gap-3 rounded-2xl border-2 p-4 text-left text-base leading-6 transition sm:p-5 ${right ? 'border-[#22a495] bg-[#e1f7f1] dark:bg-[#153c35]' : chosen ? 'border-[#e36b60] bg-[#fff0ed] dark:bg-[#3a211f]' : 'border-slate-200 bg-white hover:border-[#f2aa35] hover:bg-[#fffaf0] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10'}`}
                 >
                   <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-100 text-sm font-bold">
                     {String.fromCharCode(65 + index)}
@@ -262,7 +289,7 @@ export default function HomePage() {
               className={`mt-6 rounded-2xl p-5 ${correct ? 'bg-[#e1f7f1] text-[#075f58]' : 'bg-[#fff0ed] text-[#7f3b36]'}`}
             >
               <p className="font-bold">
-                {correct ? 'Верно!' : 'Почти. Посмотри объяснение:'}
+                {correct ? copy.right : copy.wrong}
               </p>
               <p className="mt-2 leading-7">{question.explanation}</p>
             </div>
@@ -291,6 +318,8 @@ function Dashboard({
   bestScores,
   locale,
   onLocale,
+  theme,
+  onTheme,
   user,
   onAuth,
   onSignOut,
@@ -303,6 +332,8 @@ function Dashboard({
   bestScores: Record<number, number>;
   locale: Locale;
   onLocale: (locale: Locale) => void;
+  theme: Theme;
+  onTheme: () => void;
   user: User | null;
   onAuth: () => void;
   onSignOut: () => void;
@@ -310,12 +341,13 @@ function Dashboard({
   onCloseAuth: () => void;
 }) {
   const copy = ui[locale];
+  const courseTopics = topicsForLocale(locale);
   const completion = Math.round(
-    (completedLessons.length / topics.length) * 100,
+    (completedLessons.length / courseTopics.length) * 100,
   );
   return (
-    <div className="min-h-screen bg-[#f7f7f5] text-[#37352f]">
-      <header className="border-b border-[#e8e7e3] bg-white/90 backdrop-blur">
+    <div className="min-h-screen bg-[#f7f7f5] text-[#37352f] transition-colors dark:bg-[#111513] dark:text-[#edf1ec]">
+      <header className="border-b border-[#e8e7e3] bg-white/90 backdrop-blur dark:border-white/10 dark:bg-[#111513]/90">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8">
           <div className="flex items-center gap-3">
             <span className="grid h-11 w-11 place-items-center rounded-xl bg-[#eef2ed] text-[#526451]">
@@ -331,7 +363,8 @@ function Dashboard({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <label className="flex items-center gap-2 rounded-xl border border-[#e5e4df] bg-white px-3 py-2 text-sm font-semibold">
+            <ThemeButton theme={theme} onClick={onTheme} />
+            <label className="flex items-center gap-2 rounded-xl border border-[#e5e4df] bg-white px-3 py-2 text-sm font-semibold dark:border-white/10 dark:bg-white/5">
               <Languages size={16} />
               <select
                 value={locale}
@@ -345,7 +378,7 @@ function Dashboard({
             </label>
             <button
               onClick={user ? onSignOut : onAuth}
-              className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#e5e4df] bg-white px-3 text-sm font-semibold hover:bg-[#f4f4f1]"
+              className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#e5e4df] bg-white px-3 text-sm font-semibold hover:bg-[#f4f4f1] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
             >
               <UserRound size={16} />
               {user ? user.email?.split('@')[0] : copy.signIn}
@@ -354,7 +387,7 @@ function Dashboard({
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-5 pb-20 pt-8 sm:px-8 sm:pt-12">
-        <section className="grid gap-8 rounded-[24px] border border-[#e3e2dd] bg-white p-7 shadow-[0_8px_30px_rgba(55,53,47,.06)] sm:p-10 lg:grid-cols-[1fr_320px]">
+        <section className="grid gap-8 rounded-[24px] border border-[#e3e2dd] bg-white p-7 shadow-[0_8px_30px_rgba(55,53,47,.06)] sm:p-10 lg:grid-cols-[1fr_320px] dark:border-white/10 dark:bg-[#191e1b]">
           <div>
             <p className="text-sm font-bold uppercase tracking-[.18em] text-[#7d8979]">
               {copy.map}
@@ -381,30 +414,29 @@ function Dashboard({
               />
             </div>
             <p className="mt-3 text-sm text-[#77746d]">
-              {completedLessons.length} / {topics.length} {copy.studied}
+              {completedLessons.length} / {courseTopics.length} {copy.studied}
             </p>
           </div>
         </section>
         <div className="mt-12 flex items-end justify-between gap-4">
           <div>
             <p className="text-sm font-bold uppercase tracking-[.16em] text-[#7d8979]">
-              16 тем · {totalQuestionCount} вопросов
+              {copy.topicsAndQuestions(courseTopics.length, totalQuestionCount)}
             </p>
             <h2 className="mt-2 text-3xl font-bold">{copy.choose}</h2>
           </div>
           <p className="hidden max-w-md text-right text-sm leading-6 text-slate-400 md:block">
-            Жёлтая кнопка открывает тест сразу — проходить лекцию перед этим
-            необязательно.
+            {copy.quickQuiz}
           </p>
         </div>
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {topics.map((topic, index) => {
+          {courseTopics.map((topic, index) => {
             const score = bestScores[index] ?? 0;
             const questionCount = questionCountForTopic(topic);
             return (
               <article
                 key={topic.id}
-                className="group flex min-h-[320px] flex-col rounded-[20px] border border-[#e3e2dd] bg-white p-6 transition hover:-translate-y-0.5 hover:border-[#c9cec5] hover:shadow-[0_10px_30px_rgba(55,53,47,.08)]"
+                className="group flex min-h-[320px] flex-col rounded-[20px] border border-[#e3e2dd] bg-white p-6 transition hover:-translate-y-0.5 hover:border-[#c9cec5] hover:shadow-[0_10px_30px_rgba(55,53,47,.08)] dark:border-white/10 dark:bg-[#191e1b] dark:hover:border-white/20"
               >
                 <div className="flex items-start justify-between">
                   <span className="grid h-11 w-11 place-items-center rounded-xl bg-[#f1f3ee] font-bold text-[#657362]">
@@ -413,15 +445,15 @@ function Dashboard({
                   {completedLessons.includes(index) && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-[#65d7c7]/15 px-3 py-1 text-xs font-bold text-[#65d7c7]">
                       <Check size={14} />
-                      Изучено
+                      {copy.completed}
                     </span>
                   )}
                 </div>
                 <p className="mt-5 text-xs font-bold uppercase tracking-[.12em] text-slate-400">
-                  {topic.english}
+                  {locale === 'en' ? `IN2020 · Topic ${topic.chapter}` : topic.english}
                 </p>
                 <h3 className="mt-2 text-2xl font-bold leading-8">
-                  {topicTitle(index, locale, topic.title, topic.english)}
+                  {topic.title}
                 </h3>
                 <p className="mt-3 line-clamp-3 text-base leading-7 text-[#6f6c65]">
                   {topic.summary}
@@ -430,11 +462,11 @@ function Dashboard({
                   <div className="mb-3 flex items-center justify-between text-sm text-slate-400">
                     <span className="inline-flex items-center gap-2">
                       <Clock3 size={15} />
-                      15–25 мин
+                      {copy.minutes}
                     </span>
                     {score > 0 && (
                       <span>
-                        Лучший тест: {score}/{questionCount}
+                        {copy.best}: {score}/{questionCount}
                       </span>
                     )}
                   </div>
@@ -460,14 +492,9 @@ function Dashboard({
           })}
         </div>
         <section className="mt-12 rounded-[28px] border border-white/10 bg-white/5 p-6 sm:p-8">
-          <h2 className="text-xl font-bold">Источники текущей версии</h2>
+          <h2 className="text-xl font-bold">{copy.sources}</h2>
           <p className="mt-2 max-w-3xl leading-7 text-slate-300">
-            Структура курса основана на открытых companion-материалах второго
-            издания Research Methods in Human–Computer Interaction и
-            опубликованном описании заданий IN2020. Дополнительные ориентиры:
-            Nielsen Norman Group для usability и heuristic evaluation, Belmont
-            Report для исследовательской этики. После загрузки книги профессора
-            содержание будет сверено с точным pensum.
+            {copy.sourceNote}
           </p>
           <div className="mt-4 flex flex-wrap gap-3 text-sm font-semibold">
             <a
@@ -539,7 +566,7 @@ function AuthDialog({
       role="dialog"
       aria-modal="true"
     >
-      <div className="w-full max-w-md rounded-[24px] border border-[#e3e2dd] bg-white p-7 shadow-2xl">
+      <div className="w-full max-w-md rounded-[24px] border border-[#e3e2dd] bg-white p-7 shadow-2xl dark:border-white/10 dark:bg-[#191e1b] dark:text-[#edf1ec]">
         <div className="flex items-start justify-between">
           <div>
             <p className="text-sm font-bold text-[#7d8979]">IN2020</p>
@@ -559,14 +586,14 @@ function AuthDialog({
             onChange={(e) => setEmail(e.target.value)}
             type="email"
             placeholder={copy.email}
-            className="min-h-12 w-full rounded-xl border border-[#deddd8] px-4 outline-none focus:border-[#879984]"
+            className="min-h-12 w-full rounded-xl border border-[#deddd8] bg-transparent px-4 outline-none focus:border-[#879984] dark:border-white/15"
           />
           <input
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             type="password"
             placeholder={copy.password}
-            className="min-h-12 w-full rounded-xl border border-[#deddd8] px-4 outline-none focus:border-[#879984]"
+            className="min-h-12 w-full rounded-xl border border-[#deddd8] bg-transparent px-4 outline-none focus:border-[#879984] dark:border-white/15"
           />
         </div>
         {message && (
@@ -601,23 +628,30 @@ function Lesson({
   onHome,
   onQuiz,
   onComplete,
+  theme,
+  onTheme,
 }: {
   topicIndex: number;
   locale: Locale;
   onHome: () => void;
   onQuiz: () => void;
   onComplete: () => void;
+  theme: Theme;
+  onTheme: () => void;
 }) {
-  const topic = topics[topicIndex];
+  const courseTopics = topicsForLocale(locale);
+  const topic = courseTopics[topicIndex];
   const copy = ui[locale];
-  const sections = buildLectureSections(topic);
+  const sections = buildLectureSections(topic, locale);
   return (
-    <div className="min-h-screen bg-[#f6f8fb] text-[#112838]">
+    <div className="min-h-screen bg-[#f6f8fb] text-[#112838] dark:bg-[#111513] dark:text-[#edf1ec]">
       <LearningHeader
-        title={topicTitle(topicIndex, locale, topic.title, topic.english)}
-        label={`Лекция ${topic.chapter} из ${topics.length}`}
+        title={topic.title}
+        label={copy.lecture(topic.chapter, courseTopics.length)}
         progress={0}
         onHome={onHome}
+        theme={theme}
+        onTheme={onTheme}
       />
       <main className="mx-auto max-w-3xl px-5 pb-24 pt-8 sm:px-8 sm:pt-14">
         <div className="mb-7 flex items-center gap-2 text-sm font-semibold text-[#16877e]">
@@ -628,7 +662,7 @@ function Lesson({
           <h1 className="text-4xl font-bold leading-tight tracking-tight sm:text-6xl">
             {topic.title}
           </h1>
-          <p className="mt-6 max-w-3xl text-xl leading-9 text-slate-600">
+          <p className="mt-6 max-w-3xl text-xl leading-9 text-slate-600 dark:text-slate-300">
             {topic.summary}
           </p>
         </header>
@@ -637,16 +671,14 @@ function Lesson({
             {copy.goal}
           </p>
           <p className="mt-4 text-xl font-semibold leading-8">
-            После изучения ты сможешь объяснить ключевые понятия своими словами,
-            сравнить альтернативы и обосновать выбор метода в экзаменационном
-            кейсе.
+            {copy.learningGoal}
           </p>
         </section>
         <article className="space-y-16">
           {sections.map((section, index) => (
             <section
               key={section.heading}
-              className="border-b border-slate-200 pb-14 last:border-0"
+              className="border-b border-slate-200 pb-14 last:border-0 dark:border-white/10"
             >
               <p className="mb-3 text-sm font-bold uppercase tracking-[.14em] text-[#16877e]">
                 {String(index + 1).padStart(2, '0')} · {copy.sections}
@@ -654,20 +686,20 @@ function Lesson({
               <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
                 {section.heading}
               </h2>
-              <div className="mt-7 space-y-6 text-[1.06rem] leading-8 text-slate-700 sm:text-lg sm:leading-9">
+              <div className="mt-7 space-y-6 text-[1.06rem] leading-8 text-slate-700 sm:text-lg sm:leading-9 dark:text-slate-300">
                 {section.paragraphs.map((paragraph, paragraphIndex) => (
                   <p key={paragraphIndex}>{paragraph}</p>
                 ))}
               </div>
-              <aside className="mt-8 border-l-4 border-[#ffb33f] pl-5 text-base font-semibold leading-7 text-slate-700">
+              <aside className="mt-8 border-l-4 border-[#ffb33f] pl-5 text-base font-semibold leading-7 text-slate-700 dark:text-slate-200">
                 {section.takeaway}
               </aside>
             </section>
           ))}
         </article>
-        <section className="mt-14 rounded-[28px] bg-[#e3f5f1] p-6 sm:p-9">
+        <section className="mt-14 rounded-[28px] bg-[#e3f5f1] p-6 sm:p-9 dark:bg-[#15342f]">
           <p className="text-sm font-bold uppercase tracking-[.16em] text-[#137d75]">
-            Ключевые выводы
+            {copy.keyTakeaways}
           </p>
           <ul className="mt-5 space-y-4">
             {topic.keyPoints.map((point) => (
@@ -681,36 +713,22 @@ function Lesson({
             ))}
           </ul>
         </section>
-        <section className="mt-8 rounded-[28px] border border-[#efc472] bg-[#fff7e4] p-6 sm:p-9">
+        <section className="mt-8 rounded-[28px] border border-[#efc472] bg-[#fff7e4] p-6 sm:p-9 dark:border-[#8d6b31] dark:bg-[#332a19]">
           <p className="text-sm font-bold uppercase tracking-[.16em] text-[#8e5b00]">
-            Подсказка для развёрнутого ответа
+            {copy.examGuide}
           </p>
           <h2 className="mt-3 text-2xl font-bold leading-9">
             {topic.examPrompt}
           </h2>
-          <ol className="mt-6 space-y-3 text-base leading-7 text-slate-700">
-            <li>
-              <b>1. Определи понятие</b> одним точным предложением.
-            </li>
-            <li>
-              <b>2. Объясни механизм:</b> что делает исследователь и какие
-              данные получает.
-            </li>
-            <li>
-              <b>3. Сравни альтернативу</b> по преимуществам и ограничениям.
-            </li>
-            <li>
-              <b>4. Примени к кейсу</b> и явно обоснуй решение.
-            </li>
+          <ol className="mt-6 space-y-3 text-base leading-7 text-slate-700 dark:text-slate-200">
+            {copy.answerSteps.map((step, index) => <li key={step}><b>{index + 1}.</b> {step}</li>)}
           </ol>
         </section>
         <section className="mt-12 rounded-[32px] bg-[#0e3147] p-7 text-center text-white sm:p-10">
           <Sparkles className="mx-auto text-[#ffb33f]" size={32} />
           <h2 className="mt-4 text-3xl font-bold">{copy.ready}</h2>
           <p className="mx-auto mt-3 max-w-xl text-lg leading-8 text-slate-300">
-            В тесте {questionCountForTopic(topic)} вопросов. После каждого
-            ответа появится объяснение, поэтому тест тоже является частью
-            обучения.
+            {copy.quizLearning(questionCountForTopic(topic))}
           </p>
           <button
             onClick={onQuiz}
@@ -723,7 +741,7 @@ function Lesson({
         <div className="mt-10 grid gap-3 sm:grid-cols-2">
           <button
             onClick={onHome}
-            className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-5 font-bold text-slate-700"
+            className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-5 font-bold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
           >
             <ArrowLeft size={18} />
             {copy.exit}
@@ -749,6 +767,8 @@ function Result({
   onRetry,
   onHome,
   onLesson,
+  theme,
+  onTheme,
 }: {
   topicIndex: number;
   locale: Locale;
@@ -757,47 +777,52 @@ function Result({
   onRetry: () => void;
   onHome: () => void;
   onLesson: () => void;
+  theme: Theme;
+  onTheme: () => void;
 }) {
   const percent = Math.round((correct / total) * 100);
   const passed = percent >= 75;
+  const copy = ui[locale];
+  const resultTopic = topicsForLocale(locale)[topicIndex];
   return (
     <div className="grid min-h-screen place-items-center bg-[#081d2d] px-4 py-10 text-white">
-      <main className="w-full max-w-2xl rounded-[32px] border border-white/10 bg-[#0d2a3e] p-7 text-center shadow-2xl sm:p-12">
+      <main className="relative w-full max-w-2xl rounded-[32px] border border-white/10 bg-[#0d2a3e] p-7 text-center shadow-2xl sm:p-12">
+        <div className="absolute right-5 top-5"><ThemeButton theme={theme} onClick={onTheme} /></div>
         <span
           className={`mx-auto grid h-20 w-20 place-items-center rounded-full ${passed ? 'bg-[#65d7c7] text-[#082237]' : 'bg-[#ffb33f] text-[#082237]'}`}
         >
           {passed ? <Trophy size={38} /> : <Target size={38} />}
         </span>
         <p className="mt-6 text-sm font-bold uppercase tracking-[.15em] text-[#65d7c7]">
-          {topics[topicIndex].title}
+          {resultTopic.title}
         </p>
         <h1 className="mt-2 text-4xl font-bold">
-          {passed ? 'Тема усвоена' : 'Стоит повторить материал'}
+          {passed ? copy.mastered : copy.review}
         </h1>
         <p className="mt-5 text-6xl font-bold text-[#ffb33f]">{percent}%</p>
         <p className="mt-2 text-lg text-slate-300">
-          {correct} правильных ответов из {total}
+          {copy.correctOf(correct, total)}
         </p>
         <div className="mt-8 grid gap-3 sm:grid-cols-3">
           <button
             onClick={onHome}
             className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white/8 px-4 font-bold"
           >
-            <Home size={17} />К темам
+            <Home size={17} />{copy.back}
           </button>
           <button
             onClick={onLesson}
             className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white px-4 font-bold text-[#102b3d]"
           >
             <BookOpen size={17} />
-            Повторить
+            {copy.repeatLesson}
           </button>
           <button
             onClick={onRetry}
             className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[#ffb33f] px-4 font-bold text-[#102b3d]"
           >
             <RotateCcw size={17} />
-            Ещё раз
+            {copy.retry}
           </button>
         </div>
       </main>
@@ -810,18 +835,22 @@ function LearningHeader({
   label,
   progress,
   onHome,
+  theme,
+  onTheme,
 }: {
   title: string;
   label: string;
   progress: number;
   onHome: () => void;
+  theme: Theme;
+  onTheme: () => void;
 }) {
   return (
-    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur dark:border-white/10 dark:bg-[#111513]/95">
       <div className="mx-auto flex max-w-5xl items-center gap-4 px-4 py-4 sm:px-6">
         <button
           onClick={onHome}
-          aria-label="Вернуться к темам"
+          aria-label="Back to topics"
           className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-slate-100 text-slate-700 hover:bg-slate-200"
         >
           <ArrowLeft size={20} />
@@ -841,7 +870,21 @@ function LearningHeader({
         <p className="hidden max-w-52 truncate text-sm font-bold text-[#123b53] sm:block">
           {title}
         </p>
+        <ThemeButton theme={theme} onClick={onTheme} />
       </div>
     </header>
+  );
+}
+
+function ThemeButton({ theme, onClick }: { theme: Theme; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={theme === 'dark' ? 'Use light theme' : 'Use dark theme'}
+      title={theme === 'dark' ? 'Light theme' : 'Dark theme'}
+      className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[#e5e4df] bg-white text-[#5d665a] transition hover:bg-[#f4f4f1] dark:border-white/10 dark:bg-white/5 dark:text-[#dce6dc] dark:hover:bg-white/10"
+    >
+      {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
+    </button>
   );
 }

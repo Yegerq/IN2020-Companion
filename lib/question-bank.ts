@@ -2,6 +2,7 @@ import type { CourseTopic, QuizQuestion } from './course-content';
 import { topics } from './course-content';
 import { deepDives } from './deep-dives';
 import { buildLectureSections } from './lecture-notes';
+import type { Locale } from './i18n';
 
 const firstSentence = (text: string) =>
   text.match(/^.*?[.!?](?:\s|$)/)?.[0]?.trim() ?? text;
@@ -27,10 +28,10 @@ const shuffledChoices = (
   return { choices, answer: choices.indexOf(correct) };
 };
 
-export function buildQuestionBank(topic: CourseTopic): QuizQuestion[] {
-  const topicIndex = topics.findIndex((item) => item.id === topic.id);
-  const otherTopics = topics.filter((item) => item.id !== topic.id);
-  const sections = buildLectureSections(topic).flatMap((section) =>
+export function buildQuestionBank(topic: CourseTopic, courseTopics: CourseTopic[] = topics, locale: Locale = 'ru'): QuizQuestion[] {
+  const topicIndex = courseTopics.findIndex((item) => item.id === topic.id);
+  const otherTopics = courseTopics.filter((item) => item.id !== topic.id);
+  const sections = buildLectureSections(topic, locale).flatMap((section) =>
     section.paragraphs.map((body, paragraphIndex) => ({
       heading: section.heading,
       body,
@@ -48,6 +49,43 @@ export function buildQuestionBank(topic: CourseTopic): QuizQuestion[] {
   );
   const otherPoints = otherTopics.flatMap((item) => item.keyPoints);
   const questions: QuizQuestion[] = [...topic.quiz];
+  const words = locale === 'en' ? {
+    explain: (h: string) => `Which explanation best describes “${h}”?`,
+    belongs: (body: string) => `Which concept does this statement describe: “${body}”`,
+    belongsAnswer: (h: string) => `It belongs to the section “${h}”.`,
+    apply: (t: string) => `A researcher is working with “${t}”. Which recommendation should they apply?`,
+    principle: (p: string) => `Key principle: ${p}.`,
+    truePrinciple: (t: string) => `Which principle genuinely belongs to “${t}”?`,
+    whichTopic: (p: string) => `For which topic is the recommendation “${p}” especially relevant?`,
+    topicAnswer: (t: string) => `The recommendation belongs to “${t}”.`,
+    exam: (h: string) => `Which conclusion is strongest in an exam answer about “${h}”?`,
+    courseTopic: (h: string) => `Which course topic covers “${h}”?`,
+    part: (t: string) => `This is part of “${t}”.`,
+  } : locale === 'no' ? {
+    explain: (h: string) => `Hvilken forklaring beskriver «${h}» best?`,
+    belongs: (body: string) => `Hvilket begrep beskriver denne påstanden: «${body}»`,
+    belongsAnswer: (h: string) => `Den hører til delen «${h}».`,
+    apply: (t: string) => `En forsker arbeider med «${t}». Hvilken anbefaling bør brukes?`,
+    principle: (p: string) => `Nøkkelprinsipp: ${p}.`,
+    truePrinciple: (t: string) => `Hvilket prinsipp hører faktisk til «${t}»?`,
+    whichTopic: (p: string) => `For hvilket tema er anbefalingen «${p}» særlig relevant?`,
+    topicAnswer: (t: string) => `Anbefalingen hører til «${t}».`,
+    exam: (h: string) => `Hvilken konklusjon er sterkest i et eksamenssvar om «${h}»?`,
+    courseTopic: (h: string) => `Hvilket kurstema dekker «${h}»?`,
+    part: (t: string) => `Dette er en del av «${t}».`,
+  } : {
+    explain: (h: string) => `Какое объяснение точнее всего раскрывает «${h}»?`,
+    belongs: (body: string) => `К какому понятию относится утверждение: «${body}»`,
+    belongsAnswer: (h: string) => `Это относится к блоку «${h}».`,
+    apply: (t: string) => `Исследователь работает с темой «${t}». Какую рекомендацию ему следует применить?`,
+    principle: (p: string) => `Ключевой принцип: ${p}.`,
+    truePrinciple: (t: string) => `Какой принцип действительно относится к теме «${t}»?`,
+    whichTopic: (p: string) => `Для какой темы особенно важна рекомендация «${p}»?`,
+    topicAnswer: (t: string) => `Рекомендация относится к теме «${t}».`,
+    exam: (h: string) => `Какой вывод лучше использовать в экзаменационном ответе о «${h}»?`,
+    courseTopic: (h: string) => `В какой теме курса разбирается «${h}»?`,
+    part: (t: string) => `Это часть темы «${t}».`,
+  };
 
   sections.forEach((section, sectionIndex) => {
     const body = firstSentence(section.body);
@@ -57,7 +95,7 @@ export function buildQuestionBank(topic: CourseTopic): QuizQuestion[] {
       sectionIndex + topicIndex,
     );
     questions.push({
-      prompt: `Какое объяснение точнее всего раскрывает «${section.heading}»?`,
+      prompt: words.explain(section.heading),
       choices: definition.choices,
       answer: definition.answer,
       explanation: body,
@@ -69,10 +107,10 @@ export function buildQuestionBank(topic: CourseTopic): QuizQuestion[] {
       sectionIndex + 2,
     );
     questions.push({
-      prompt: `К какому понятию относится утверждение: «${body}»`,
+      prompt: words.belongs(body),
       choices: heading.choices,
       answer: heading.answer,
-      explanation: `Это относится к блоку «${section.heading}».`,
+      explanation: words.belongsAnswer(section.heading),
     });
 
     const application = shuffledChoices(
@@ -81,10 +119,10 @@ export function buildQuestionBank(topic: CourseTopic): QuizQuestion[] {
       sectionIndex + 1,
     );
     questions.push({
-      prompt: `Исследователь работает с темой «${topic.title}». Какую рекомендацию ему следует применить?`,
+      prompt: words.apply(topic.title),
       choices: application.choices,
       answer: application.answer,
-      explanation: `Ключевой принцип: ${topic.keyPoints[sectionIndex % topic.keyPoints.length]}.`,
+      explanation: words.principle(topic.keyPoints[sectionIndex % topic.keyPoints.length]),
     });
   });
 
@@ -95,7 +133,7 @@ export function buildQuestionBank(topic: CourseTopic): QuizQuestion[] {
       pointIndex + topicIndex + 1,
     );
     questions.push({
-      prompt: `Какой принцип действительно относится к теме «${topic.title}»?`,
+      prompt: words.truePrinciple(topic.title),
       choices: principle.choices,
       answer: principle.answer,
       explanation: point,
@@ -111,10 +149,10 @@ export function buildQuestionBank(topic: CourseTopic): QuizQuestion[] {
       pointIndex + 2,
     );
     questions.push({
-      prompt: `Для какой темы особенно важна рекомендация «${point}»?`,
+      prompt: words.whichTopic(point),
       choices: titles.choices,
       answer: titles.answer,
-      explanation: `Рекомендация относится к теме «${topic.title}».`,
+      explanation: words.topicAnswer(topic.title),
     });
   });
 
@@ -126,7 +164,7 @@ export function buildQuestionBank(topic: CourseTopic): QuizQuestion[] {
       topicIndex + sectionIndex + 3,
     );
     questions.push({
-      prompt: `Какой вывод лучше использовать в экзаменационном ответе о «${section.heading}»?`,
+      prompt: words.exam(section.heading),
       choices: choices.choices,
       answer: choices.answer,
       explanation: correct,
@@ -142,10 +180,10 @@ export function buildQuestionBank(topic: CourseTopic): QuizQuestion[] {
       topicIndex + sectionIndex,
     );
     questions.push({
-      prompt: `В какой теме курса разбирается «${section.heading}»?`,
+      prompt: words.courseTopic(section.heading),
       choices: topicChoice.choices,
       answer: topicChoice.answer,
-      explanation: `Это часть темы «${topic.title}».`,
+      explanation: words.part(topic.title),
     });
   });
 
