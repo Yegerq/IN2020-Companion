@@ -20,29 +20,38 @@ import {
   XCircle,
 } from 'lucide-react';
 import { topics } from '@/lib/course-content';
-import { buildQuestionBank, questionsPerTopic } from '@/lib/question-bank';
-import { deepDives } from '@/lib/deep-dives';
+import {
+  buildQuestionBank,
+  questionCountForTopic,
+  totalQuestionCount,
+} from '@/lib/question-bank';
+import { buildLectureSections } from '@/lib/lecture-notes';
 
 type Screen = 'home' | 'lesson' | 'quiz' | 'result';
 
 export default function HomePage() {
   const [screen, setScreen] = useState<Screen>('home');
   const [topicIndex, setTopicIndex] = useState(0);
-  const [lessonStep, setLessonStep] = useState(0);
+  const [quizRun, setQuizRun] = useState(0);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [answers, setAnswers] = useState<boolean[]>([]);
   const [completedLessons, setCompletedLessons] = useState<number[]>([]);
   const [bestScores, setBestScores] = useState<Record<number, number>>({});
   const topic = topics[topicIndex];
-  const questions = useMemo(() => buildQuestionBank(topic), [topic]);
+  const questions = useMemo(() => {
+    const items = [...buildQuestionBank(topic)];
+    for (let index = items.length - 1; index > 0; index -= 1) {
+      const swap = Math.floor(Math.random() * (index + 1));
+      [items[index], items[swap]] = [items[swap], items[index]];
+    }
+    return items;
+  }, [topic, quizRun]);
   const question = questions[questionIndex];
-  const totalStudySteps =
-    topic.sections.length + (deepDives[topic.id]?.length ?? 0) + 3;
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('in2020-progress');
+      const saved = localStorage.getItem('in2020-progress-v2');
       if (saved) {
         const parsed = JSON.parse(saved);
         setCompletedLessons(parsed.completedLessons ?? []);
@@ -56,7 +65,7 @@ export default function HomePage() {
   useEffect(() => {
     try {
       localStorage.setItem(
-        'in2020-progress',
+        'in2020-progress-v2',
         JSON.stringify({ completedLessons, bestScores }),
       );
     } catch {
@@ -66,12 +75,12 @@ export default function HomePage() {
 
   const openLesson = (index: number) => {
     setTopicIndex(index);
-    setLessonStep(0);
     setScreen('lesson');
     window.scrollTo(0, 0);
   };
   const openQuiz = (index: number) => {
     setTopicIndex(index);
+    setQuizRun((run) => run + 1);
     setQuestionIndex(0);
     setSelectedAnswer(null);
     setAnswers([]);
@@ -115,7 +124,7 @@ export default function HomePage() {
     setCompletedLessons((items) =>
       items.includes(topicIndex) ? items : [...items, topicIndex],
     );
-    openQuiz(topicIndex);
+    goHome();
   };
 
   if (screen === 'home')
@@ -131,11 +140,9 @@ export default function HomePage() {
     return (
       <Lesson
         topicIndex={topicIndex}
-        step={lessonStep}
-        totalSteps={totalStudySteps}
-        onStep={setLessonStep}
         onHome={goHome}
-        onQuiz={markLessonComplete}
+        onQuiz={() => openQuiz(topicIndex)}
+        onComplete={markLessonComplete}
       />
     );
   if (screen === 'result')
@@ -302,7 +309,7 @@ function Dashboard({
         <div className="mt-12 flex items-end justify-between gap-4">
           <div>
             <p className="text-sm font-bold uppercase tracking-[.16em] text-[#ffb33f]">
-              16 тем · {topics.length * questionsPerTopic} вопросов
+              16 тем · {totalQuestionCount} вопросов
             </p>
             <h2 className="mt-2 text-3xl font-bold">Выбери тему</h2>
           </div>
@@ -314,6 +321,7 @@ function Dashboard({
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {topics.map((topic, index) => {
             const score = bestScores[index] ?? 0;
+            const questionCount = questionCountForTopic(topic);
             return (
               <article
                 key={topic.id}
@@ -347,7 +355,7 @@ function Dashboard({
                     </span>
                     {score > 0 && (
                       <span>
-                        Лучший тест: {score}/{questionsPerTopic}
+                        Лучший тест: {score}/{questionCount}
                       </span>
                     )}
                   </div>
@@ -364,7 +372,7 @@ function Dashboard({
                       className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[#ffb33f] px-3 font-bold text-[#102b3d] hover:bg-[#f4a72d]"
                     >
                       <ListChecks size={17} />
-                      Тест · {questionsPerTopic}
+                      Тест · {questionCount}
                     </button>
                   </div>
                 </div>
@@ -416,40 +424,26 @@ function Dashboard({
 
 function Lesson({
   topicIndex,
-  step,
-  totalSteps,
-  onStep,
   onHome,
   onQuiz,
+  onComplete,
 }: {
   topicIndex: number;
-  step: number;
-  totalSteps: number;
-  onStep: (step: number) => void;
   onHome: () => void;
   onQuiz: () => void;
+  onComplete: () => void;
 }) {
   const topic = topics[topicIndex];
-  const sections = [
-    ...topic.sections.map((section) => ({ ...section, tip: '' })),
-    ...(deepDives[topic.id] ?? []),
-  ];
-  const goToSection = (index: number) => {
-    const target = Math.max(0, Math.min(index, sections.length - 1));
-    onStep(target);
-    document
-      .getElementById(`lesson-section-${target}`)
-      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
+  const sections = buildLectureSections(topic);
   return (
     <div className="min-h-screen bg-[#f6f8fb] text-[#112838]">
       <LearningHeader
         title={topic.title}
         label={`Лекция ${topic.chapter} из ${topics.length}`}
-        progress={(step + 1) / totalSteps}
+        progress={0}
         onHome={onHome}
       />
-      <main className="mx-auto max-w-4xl px-4 pb-24 pt-8 sm:px-6 sm:pt-14">
+      <main className="mx-auto max-w-3xl px-5 pb-24 pt-8 sm:px-8 sm:pt-14">
         <div className="mb-7 flex items-center gap-2 text-sm font-semibold text-[#16877e]">
           <GraduationCap size={18} />
           {topic.english}
@@ -472,77 +466,29 @@ function Lesson({
             кейсе.
           </p>
         </section>
-        <nav
-          className="sticky top-[76px] z-10 -mx-4 mb-10 overflow-x-auto border-y border-slate-200 bg-[#f6f8fb]/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border"
-          aria-label="Разделы лекции"
-        >
-          <div className="flex min-w-max gap-2">
-            {sections.map((section, index) => (
-              <button
-                key={section.heading}
-                onClick={() => goToSection(index)}
-                className={`min-h-11 rounded-xl px-4 text-sm font-bold ${step === index ? 'bg-[#123b53] text-white' : 'bg-white text-slate-600'}`}
-              >
-                {index + 1}. {section.heading}
-              </button>
-            ))}
-          </div>
-        </nav>
-        <div className="space-y-14">
+        <article className="space-y-16">
           {sections.map((section, index) => (
             <section
-              id={`lesson-section-${index}`}
               key={section.heading}
-              className="scroll-mt-36"
+              className="border-b border-slate-200 pb-14 last:border-0"
             >
-              <div className="mb-5 flex items-center gap-4">
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#dff5ef] text-lg font-bold text-[#137d75]">
-                  {index + 1}
-                </span>
-                <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                  {section.heading}
-                </h2>
+              <p className="mb-3 text-sm font-bold uppercase tracking-[.14em] text-[#16877e]">
+                {String(index + 1).padStart(2, '0')} · Раздел
+              </p>
+              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+                {section.heading}
+              </h2>
+              <div className="mt-7 space-y-6 text-[1.06rem] leading-8 text-slate-700 sm:text-lg sm:leading-9">
+                {section.paragraphs.map((paragraph, paragraphIndex) => (
+                  <p key={paragraphIndex}>{paragraph}</p>
+                ))}
               </div>
-              <div className="rounded-[26px] border border-slate-200 bg-white p-6 shadow-sm sm:p-9">
-                <p className="text-lg leading-9 text-slate-700">
-                  {section.body}
-                </p>
-                <div className="mt-7 rounded-2xl border-l-4 border-[#ffb33f] bg-[#fff8e8] p-5">
-                  <p className="text-sm font-bold uppercase tracking-[.12em] text-[#8e5b00]">
-                    {section.tip
-                      ? 'Практическая подсказка'
-                      : 'Как думать на экзамене'}
-                  </p>
-                  <p className="mt-2 text-base leading-7 text-slate-700">
-                    {section.tip ||
-                      'Не ограничивайся определением. Назови, какую исследовательскую задачу решает этот элемент, какие данные он даёт и какое ограничение нужно признать.'}
-                  </p>
-                </div>
-              </div>
+              <aside className="mt-8 border-l-4 border-[#ffb33f] pl-5 text-base font-semibold leading-7 text-slate-700">
+                {section.takeaway}
+              </aside>
             </section>
           ))}
-        </div>
-        <div className="sticky bottom-3 z-10 mx-auto mt-10 flex max-w-sm items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 p-2 shadow-xl backdrop-blur">
-          <button
-            disabled={step === 0}
-            onClick={() => goToSection(step - 1)}
-            className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl font-bold text-slate-600 disabled:opacity-30"
-          >
-            <ArrowLeft size={18} />
-            Назад
-          </button>
-          <span className="text-sm font-bold text-slate-500">
-            {Math.min(step + 1, sections.length)}/{sections.length}
-          </span>
-          <button
-            disabled={step >= sections.length - 1}
-            onClick={() => goToSection(step + 1)}
-            className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#123b53] font-bold text-white disabled:bg-slate-200 disabled:text-slate-400"
-          >
-            Далее
-            <ArrowRight size={18} />
-          </button>
-        </div>
+        </article>
         <section className="mt-14 rounded-[28px] bg-[#e3f5f1] p-6 sm:p-9">
           <p className="text-sm font-bold uppercase tracking-[.16em] text-[#137d75]">
             Ключевые выводы
@@ -586,8 +532,9 @@ function Lesson({
           <Sparkles className="mx-auto text-[#ffb33f]" size={32} />
           <h2 className="mt-4 text-3xl font-bold">Готов проверить знания?</h2>
           <p className="mx-auto mt-3 max-w-xl text-lg leading-8 text-slate-300">
-            В тесте {questionsPerTopic} вопросов. После каждого ответа появится
-            объяснение, поэтому тест тоже является частью обучения.
+            В тесте {questionCountForTopic(topic)} вопросов. После каждого
+            ответа появится объяснение, поэтому тест тоже является частью
+            обучения.
           </p>
           <button
             onClick={onQuiz}
@@ -597,23 +544,21 @@ function Lesson({
             <ListChecks size={19} />
           </button>
         </section>
-        <div className="mt-10 flex items-center justify-between gap-4">
+        <div className="mt-10 grid gap-3 sm:grid-cols-2">
           <button
             onClick={onHome}
-            className="inline-flex items-center gap-2 rounded-xl px-3 py-3 font-semibold text-slate-600"
+            className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-5 font-bold text-slate-700"
           >
-            <ArrowLeft size={18} />К темам
+            <ArrowLeft size={18} />
+            Выйти без завершения
           </button>
-          <div className="flex gap-2">
-            {Array.from({ length: totalSteps }).map((_, index) => (
-              <button
-                key={index}
-                aria-label={`Шаг ${index + 1}`}
-                onClick={() => onStep(index)}
-                className={`h-2.5 rounded-full transition-all ${index <= step ? 'w-7 bg-[#16877e]' : 'w-2.5 bg-slate-300'}`}
-              />
-            ))}
-          </div>
+          <button
+            onClick={onComplete}
+            className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-[#16877e] px-5 font-bold text-white"
+          >
+            <CheckCircle2 size={19} />
+            Завершить тему
+          </button>
         </div>
       </main>
     </div>

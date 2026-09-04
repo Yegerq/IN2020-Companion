@@ -1,6 +1,7 @@
 import type { CourseTopic, QuizQuestion } from './course-content';
 import { topics } from './course-content';
 import { deepDives } from './deep-dives';
+import { buildLectureSections } from './lecture-notes';
 
 const firstSentence = (text: string) =>
   text.match(/^.*?[.!?](?:\s|$)/)?.[0]?.trim() ?? text;
@@ -29,7 +30,15 @@ const shuffledChoices = (
 export function buildQuestionBank(topic: CourseTopic): QuizQuestion[] {
   const topicIndex = topics.findIndex((item) => item.id === topic.id);
   const otherTopics = topics.filter((item) => item.id !== topic.id);
-  const sections = [...topic.sections, ...(deepDives[topic.id] ?? [])];
+  const sections = buildLectureSections(topic).flatMap((section) =>
+    section.paragraphs.map((body, paragraphIndex) => ({
+      heading:
+        paragraphIndex === 0
+          ? section.heading
+          : `${section.heading}: аспект ${paragraphIndex + 1}`,
+      body,
+    })),
+  );
   const allSections = (item: CourseTopic) => [
     ...item.sections,
     ...(deepDives[item.id] ?? []),
@@ -143,7 +152,22 @@ export function buildQuestionBank(topic: CourseTopic): QuizQuestion[] {
     });
   });
 
-  return questions.slice(0, 24);
+  return questions.slice(0, questionCountForTopic(topic));
 }
 
-export const questionsPerTopic = 24;
+const questionCounts = [
+  22, 27, 31, 29, 25, 24, 26, 32, 28, 35, 30, 23, 27, 33, 26, 24,
+];
+
+export const questionCountForTopic = (topic: CourseTopic) =>
+  questionCounts[
+    Math.max(
+      0,
+      topics.findIndex((item) => item.id === topic.id),
+    )
+  ];
+
+export const totalQuestionCount = topics.reduce(
+  (sum, topic) => sum + questionCountForTopic(topic),
+  0,
+);
